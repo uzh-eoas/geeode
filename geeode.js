@@ -427,7 +427,7 @@ exports.de_optim = function(pop_size,
         print("DE Optim is returning a:");
         if (computeScree === false) {
             print("Population Image");
-            return ee.Image(populationOutput).clip(aOI);
+            return ee.Image(populationOutput);
         } else {
             print("Scree Image");
             return ee.Image(screeImage);
