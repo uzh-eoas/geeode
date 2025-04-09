@@ -1,10 +1,23 @@
-GEEODE: A Google Earth Engine Implementation of Optimization by Differential Evolution
 ---
-
-Devin Routh<sup>1</sup>, Claudia Roeoesli<sup>1</sup>
-
-<sup>1</sup> Remote Sensing Laboratories, Department of Geography, University of
-Zürich, Zürich, Switzerland
+title: 'GEEODE: A Google Earth Engine Implementation of Optimization by Differential Evolution'
+tags:
+  - Google Earth Engine
+  - remote sensing
+  - optimization
+  - time series modelling
+authors:
+  - name: Devin Routh
+    orcid: 0000-0002-5910-8847
+    affiliation: 1
+  - name: Claudia Roeoesli
+    orcid: 0000-0003-4656-7080
+    affiliation: 1
+affiliations:
+ - name: Remote Sensing Laboratories, Department of Geography, University of Zürich, Zürich, Switzerland
+   index: 1
+date: 09 April 2025
+bibliography: geeode_paper.bib
+---
 
 ### Abstract
 
@@ -31,13 +44,13 @@ intermediate outputs also allows users to run multiple populations in
 parallel. The function is implemented in both Javascript and Python, and
 an example on Sentinel-2 data time series is included.
 
-#### Introduction
+#### Introduction and Statement of Need
 
 Optimization algorithms based on natural selection, also called genetic
-or evolutionary algorithms, have been used since the 1950\'s \[Mitchell
-1998\] and continue to be re-examined for use as well as development
-\[Ahmad 2022; Das 2016; Das 2010; Pant 2020; Price et al., 2005\]. The
-idea is simple: iterate a population of candidate solutions to a problem
+or evolutionary algorithms, have been used since the 1950\'s [@mitchell1998introduction]
+and continue to be re-examined for use as well as development
+[@ahmad2022differential][@das2016recent][@das2010differential][@pant2020differential][@price2006differential].
+The idea is simple: iterate a population of candidate solutions to a problem
 while mixing candidate solutions in the same ways that populations of
 organisms undergo genetic variation. For example, if you have
 observation points in 2 dimensions (see the algorithm figure below), and
@@ -48,26 +61,27 @@ mathematical models that are fit to the data (2) then undergoing an
 "evolution" process where you mix/combine best fitting models,
 iteratively, until a satisfactory model has been reached.
 
-![](algorithm_figure.png)
+![DE Optimization in a single chart](algorithm_figure.png)
 
-Rainer and Price (1997) developed such an algorithm that they called
+Storn and Price [@storn1997differential] developed such an algorithm that they called
 differential evolution (DE) that is particularly suited for optimizing
 non-continuous and non-differentiable real-valued functions using
 real-valued parameters, and the approach has since been applied in a
-number of scholarly fields \[Biesbroek 2006; Feoktistov 2006; Price et
-al., 2005; Qing 2010\]. Nowadays, there are multiple software packages
+number of scholarly fields [@biesbroek2006comparison][@feoktistov2006differential]
+[@price2005application][@qing2010basics]. Nowadays, there are multiple software packages
 available to run DE, including a [package
 in](https://cran.r-project.org/web/packages/DEoptim/index.html) R
-\[Mullen 2011\], a [function in
+[@mullen2011deoptim], a [function in
 SciPy](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html),
 and commercial tools in
 [MatLab](https://www.mathworks.com/matlabcentral/fileexchange/18593-differential-evolution)
 and
 [Mathematica](https://reference.wolfram.com/language/tutorial/ConstrainedOptimizationGlobalNumerical.html).
+
 The implementation of DE in GEE aims to assist with modelling time
 series data using arbitrary mathematical models (e.g., linear,
 parabolic, logarithmic, etc.) on global-scale remote sensing
-datasets---especially when single pixels have sparse observations, such
+datasets—especially when single pixels have sparse observations, such
 as when remotely sensed data is heavily impeded by cloud cover, and the
 process to fit a model through more standard regression modelling
 approaches are unsuitable. Moreover, the algorithm is structured to
@@ -189,7 +203,7 @@ fitness; i.e., when a chosen RMSE value has been achieved. The
 implementation includes an option to produce an RMSE image, termed a
 *screeImage*, to monitor the progression of the optimization success
 with a scree plot similar to what is used in dimensional reduction
-techniques \[Cattell 1966\]. This image is comprised of multiple bands
+techniques [@cattell1966scree]. This image is comprised of multiple bands
 wherein each band is the best RMSE value from the population at that
 iteration. It allows users to determine when convergence on an optimal
 value has been achieved and an acceptable final parameter set has been
@@ -267,56 +281,8 @@ the algorithm and the parts that have been opened for parallelization:
   - For heuristic purposes, it is also possible to produce the metric
     being assess for optimization (e.g., RMSE) after each mutation step.
 
-#### References
+#### Acknowledgements
 
-Ahmad, Mohamad Faiz, et al. \"Differential evolution: A recent review
-based on state-of-the-art works.\" *Alexandria Engineering Journal* 61.5
-(2022): 3831-3872.
+We would like to acknowledge that our research was funded partly by the Canton of Zürich and partly through a Google Earth Engine research award.
 
-Biesbroek, Robin. \"A comparison of the differential evolution method
-with genetic algorithms for orbit optimisation.\" 57th International
-Astronautical Congress. 2006.
-
-Cattell, Raymond B. \"The scree test for the number of
-factors.\" *Multivariate behavioral research* 1.2 (1966): 245-276.
-
-Das, Swagatam, and Ponnuthurai Nagaratnam Suganthan. \"Differential
-evolution: A survey of the state-of-the-art.\" *IEEE transactions on
-evolutionary computation* 15.1 (2010): 4-31.
-
-Das, Swagatam, Sankha Subhra Mullick, and Ponnuthurai N. Suganthan.
-\"Recent advances in differential evolution--an updated survey.\" Swarm
-and evolutionary computation 27 (2016): 1-30.
-
-Feoktistov, Vitaliy. \"Differential evolution--in search of solutions.\"
-Nova Iorque: Springer (2006).
-
-Mitchell, Melanie. An introduction to genetic algorithms. MIT press,
-1998.
-
-Mullen, Katharine, et al. \"DEoptim: An R package for global
-optimization by differential evolution.\" *Journal of Statistical
-Software* 40.6 (2011): 1-26.
-
-Pant, Millie, et al. \"Differential Evolution: A review of more than two
-decades of research.\" Engineering Applications of Artificial
-Intelligence 90 (2020): 103479.
-
-Price, Kenneth V., et al. \"Application of differential evolution to the
-analysis of X-ray reflectivity data.\" Differential Evolution: A
-Practical Approach to Global Optimization (2005): 463-478.
-
-Price, Kenneth, Rainer M. Storn, and Jouni A. Lampinen. Differential
-evolution: a practical approach to global optimization. Springer Science
-& Business Media, 2006.
-
-Qing, Anyong. \"Basics of differential evolution.\" Differential
-Evolution in Electromagnetics. Berlin, Heidelberg: Springer Berlin
-Heidelberg, 2010. 19-42.
-
-Storn, Rainer, and Kenneth Price. \"Differential evolution--a simple and
-efficient heuristic for global optimization over continuous spaces.\"
-Journal of global optimization 11 (1997): 341-359.
-
-"Time Series Modeling." Google for Developers,
-developers.google.com/earth-engine/tutorials/community/time-series-modeling.
+#### Citations
