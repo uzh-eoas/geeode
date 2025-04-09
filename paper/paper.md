@@ -16,7 +16,7 @@ affiliations:
  - name: Remote Sensing Laboratories, Department of Geography, University of Zürich, Zürich, Switzerland
    index: 1
 date: 09 April 2025
-bibliography: geeode_paper.bib
+bibliography: paper.bib
 ---
 
 ### Abstract
