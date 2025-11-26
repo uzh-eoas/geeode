@@ -1,0 +1,147 @@
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Project metadata – fill in the placeholders with your info
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[project]
+name = "geeode"
+version = "1.0.1"
+description = "A Google Earth Engine package for Optimization via Differential Evolution"
+readme = "README.md"
+license = {text = "BSD-3-Clause"}
+authors = [
+    {name = "Devin Routh", email = "devin.routh@uzh.ch"},
+    {name = "Claudia Röösli", email = "claudia.roeoesli@geo.uzh.ch"}
+]
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Python Version
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+requires-python = ">=3.11,<4.0"
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Runtime dependencies
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+dependencies = [
+    "earthengine-api==0.1.382",
+    "pandas>=2.0,<3.0"
+]
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Optional / development dependencies
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[project.optional-dependencies]
+
+docs = [
+    "appnope==0.1.4",
+    "asttokens==3.0.1",
+    "babel==2.17.0",
+    "backrefs==6.1",
+    "cachetools==6.2.2",
+    "certifi==2025.11.12",
+    "charset-normalizer==3.4.4",
+    "click==8.2.1",
+    "colorama==0.4.6",
+    "comm==0.2.3",
+    "contourpy==1.3.3",
+    "cycler==0.12.1",
+    "debugpy==1.8.17",
+    "decorator==5.2.1",
+    "earthengine-api==1.6.13",
+    "executing==2.2.1",
+    "fonttools==4.60.1",
+    "gcloud==0.18.3",
+    "ghp-import==2.1.0",
+    "google-api-core==2.28.1",
+    "google-api-python-client==2.187.0",
+    "google-auth==2.43.0",
+    "google-auth-httplib2==0.2.1",
+    "google-cloud-core==2.5.0",
+    "google-cloud-storage==3.6.0",
+    "google-crc32c==1.7.1",
+    "google-resumable-media==2.8.0",
+    "googleapis-common-protos==1.72.0",
+    "griffe==1.15.0",
+    "httplib2==0.31.0",
+    "idna==3.11",
+    "iniconfig==2.3.0",
+    "ipykernel==7.1.0",
+    "ipython==9.7.0",
+    "ipython-pygments-lexers==1.1.1",
+    "jedi==0.19.2",
+    "jinja2==3.1.6",
+    "jupyter-client==8.6.3",
+    "jupyter-core==5.9.1",
+    "kiwisolver==1.4.9",
+    "markdown==3.10",
+    "markupsafe==3.0.3",
+    "matplotlib==3.10.7",
+    "matplotlib-inline==0.2.1",
+    "mergedeep==1.3.4",
+    "mkdocs==1.6.1",
+    "mkdocs-autorefs==1.4.3",
+    "mkdocs-get-deps==0.2.0",
+    "mkdocs-material==9.7.0",
+    "mkdocs-material-extensions==1.3.1",
+    "mkdocstrings==0.30.1",
+    "mkdocstrings-python==1.19.0",
+    "nest-asyncio==1.6.0",
+    "numpy==2.3.5",
+    "oauth2client==4.1.3",
+    "packaging==25.0",
+    "paginate==0.5.7",
+    "pandas==2.3.3",
+    "parso==0.8.5",
+    "pathspec==0.12.1",
+    "pexpect==4.9.0",
+    "pillow==12.0.0",
+    "platformdirs==4.5.0",
+    "pluggy==1.6.0",
+    "prompt-toolkit==3.0.52",
+    "proto-plus==1.26.1",
+    "protobuf==6.33.1",
+    "psutil==7.1.3",
+    "ptyprocess==0.7.0",
+    "pure-eval==0.2.3",
+    "pyasn1==0.6.1",
+    "pyasn1-modules==0.4.2",
+    "pygments==2.19.2",
+    "pymdown-extensions==10.17.1",
+    "pyparsing==3.2.5",
+    "pytest==9.0.1",
+    "python-dateutil==2.9.0.post0",
+    "pytz==2025.2",
+    "pyyaml==6.0.3",
+    "pyyaml-env-tag==1.1",
+    "pyzmq==27.1.0",
+    "requests==2.32.5",
+    "rsa==4.9.1",
+    "six==1.17.0",
+    "stack-data==0.6.3",
+    "tornado==6.5.2",
+    "traitlets==5.14.3",
+    "typing-extensions==4.15.0",
+    "tzdata==2025.2",
+    "uritemplate==4.2.0",
+    "urllib3==2.5.0",
+    "watchdog==6.0.0",
+    "wcwidth==0.2.14"
+]
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Build system – keep the default setuptools configuration
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Parameterize setuptools
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+include = [
+    "paper/**",
+    "tests/**"
+]
+

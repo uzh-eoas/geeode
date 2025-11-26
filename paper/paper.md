@@ -15,7 +15,7 @@ authors:
 affiliations:
  - name: Remote Sensing Laboratories, Department of Geography, University of Zürich, Zürich, Switzerland
    index: 1
-date: 09 April 2025
+date: 26 November 2025
 bibliography: paper.bib
 ---
 
@@ -61,7 +61,7 @@ mathematical models that are fit to the data (2) then undergoing an
 "evolution" process where you mix/combine best fitting models,
 iteratively, until a satisfactory model has been reached.
 
-![DE Optimization in a single chart](algorithm_figure.png)
+![DE Optimization in a single chart](main_figure.png)
 
 Storn and Price [@storn1997differential] developed such an algorithm that they called
 differential evolution (DE) that is particularly suited for optimizing
@@ -94,7 +94,7 @@ computationally rigorous workflows on large amounts of imagery.
 #### Overview, Key Features, Implementation Philosophy, and Opportunities for Development
 
 An understanding of the differential evolution algorithm is necessary
-when using the function module. As such, [the appendix](appendix.pdf) fully illustrates
+when using the function module. As such, [the documentation](https://uzh-eoas.github.io/geeode/) illustrates
 the concepts and processing steps. Importantly, the components of such a
 genetic algorithm include:
 
@@ -281,8 +281,51 @@ the algorithm and the parts that have been opened for parallelization:
   - For heuristic purposes, it is also possible to produce the metric
     being assess for optimization (e.g., RMSE) after each mutation step.
 
+### Additional Functionality
+
+In addition to the core functionality provided by the `de_optim` function, 
+specific functions have been provided (both analytical and practical) to
+allow users the ability to customize their workflows.
+
+#### Temporal Subsampling
+
+Given the constraints on memory that effect the parameterization of the 
+optimization process, a temporal subsampling function has been added to give 
+users the ability to reduce the size of the image collections being used 
+as the basis for their optimization tasks.
+
+The subsampling function specifically allows for a temporal subsetting process, 
+in which every pixel's time-series of observations is sampled according to their
+temporal density; i.e., time series are reduced to a specific size by removing 
+the necessary number points at an individual pixel-level according to their 
+relative frequency across the timespan through a weighted-random sampling 
+process wherein the weights are the calculated as the density of observations 
+around a specified time-window/kernel. See the [documentation](https://uzh-eoas.github.io/geeode/)
+for more details.
+
+### Testing
+
+Included in the repo is also a PyTest based testing framework to confirm the 
+correct operation of the algorithm. It works by asserting specific algorithmic 
+conditions when tested across arbitrary functional forms generated with 
+randomized parameter sets. In other words, the testing process allows users to 
+confirm that that algorithm:
+
+- **Generates** sets of functional coefficients on **arbitrary**, closed form 
+    algebraic functions such that each coefficient **falls within the numeric**
+    **bounds** provided.
+- Moreover, when the coefficient sets are being assessed **as the iterations** 
+    **proceed**, the fitness score of the coefficients **either improves or** 
+    **stabilizes without exception**.
+
+The existing PyTest framework assesses a variety of functional families— 
+currently including multiple replicates of logarithmic, exponential, harmonic, 
+and linear functions—while also allowing users a structure to expand on the tests
+_ad hoc_ so as to affirm algorithmic fidelity.
+
 #### Acknowledgements
 
-We would like to acknowledge that our research was funded partly by the Canton of Zürich and partly through a Google Earth Engine research award.
+We would like to acknowledge that our research was funded partly by the Canton 
+of Zürich and partly through a Google Earth Engine research award.
 
 #### Citations

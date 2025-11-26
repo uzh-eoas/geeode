@@ -1,0 +1,6 @@
+# Minimum Python version: 3.11 (any later 3.x is allowed)
+python>=3.11,<4.0
+
+# Core dependencies
+earthengine-api==0.1.382
+pandas>=2.0,<3.0

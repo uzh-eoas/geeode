@@ -1,0 +1,51 @@
+site_name: '🌍🕰️ GEEODE 📈📉'
+# repo_url: https://github.com/uzh-eoas/geeode
+
+theme:
+  logo: graphics/uzheoas_favicon.png
+  favicon: graphics/uzheoas_favicon.png
+  name: material
+  highlightjs:
+      hljs_style: github
+  features:
+      - content.math
+      - content.code.copy
+      - navigation.expand
+
+
+      
+
+markdown_extensions:
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+
+extra_javascript:
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - 'DE Optimization':
+      - 'Algorithm Explained': de_optim_explained.md
+      - 'Workflow Options': de_optim_workflows.md
+  - 'Subsampling': subsampling.md
+  - 'Functions': api.md
+
+  
+
+extra:
+  generator: false
