@@ -1,0 +1,804 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../de_optim_workflows/">
+      
+      
+        <link rel="next" href="../api/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../graphics/uzheoas_favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>Subsampling - 🌍🕰️ GEEODE 📈📉</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.618322db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#subsampling-explained" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="🌍🕰️ GEEODE 📈📉" class="md-header__button md-logo" aria-label="🌍🕰️ GEEODE 📈📉" data-md-component="logo">
+      
+  <img src="../graphics/uzheoas_favicon.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            🌍🕰️ GEEODE 📈📉
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Subsampling
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="🌍🕰️ GEEODE 📈📉" class="md-nav__button md-logo" aria-label="🌍🕰️ GEEODE 📈📉" data-md-component="logo">
+      
+  <img src="../graphics/uzheoas_favicon.png" alt="logo">
+
+    </a>
+    🌍🕰️ GEEODE 📈📉
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DE Optimization
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    DE Optimization
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../de_optim_explained/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithm Explained
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../de_optim_workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workflow Options
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subsampling
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subsampling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#collection-size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Collection Size
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#temporal-subsampling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Temporal (Sub)Sampling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Temporal (Sub)Sampling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#background" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sampling-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sampling Methods
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sampling Methods">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#simple-weighted-subsampling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Simple Weighted Subsampling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#leapfrog-sampling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        "Leapfrog" Sampling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#split-shuffle-sampling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        "Split-Shuffle" Sampling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considerations
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Functions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#collection-size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Collection Size
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#temporal-subsampling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Temporal (Sub)Sampling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Temporal (Sub)Sampling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#background" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sampling-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sampling Methods
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sampling Methods">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#simple-weighted-subsampling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Simple Weighted Subsampling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#leapfrog-sampling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        "Leapfrog" Sampling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#split-shuffle-sampling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        "Split-Shuffle" Sampling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considerations
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="subsampling-explained">Subsampling Explained</h1>
+<h2 id="collection-size">Collection Size</h2>
+<p>The <code>de_optim</code> function and algorithm is structured in such a way that larger populations and greater numbers of iterations benefit the optimization process. However, these aspects of the algorithm also face computational limits.</p>
+<p>Specifically, if you have <strong>large image collections</strong> (100+) images, it may be efficient (or even necessary) for you to reduce the size of your image collection to overcome computational barriers (e.g., in memory).</p>
+<h2 id="temporal-subsampling">Temporal (Sub)Sampling</h2>
+<p>Image collections in GEE by their design allow for very specific data structures. Consider the following points:</p>
+<ul>
+<li>Images in collections do not necessarily overlap.</li>
+<li>Images in collections do not necessarily share the same pixel mask.</li>
+<li>Images in collections do not necessarily share the same timestamp.</li>
+</ul>
+<p>Due to these attributes, when converting image collections into array-images (e.g., using <code>toArray()</code>) to make a single image wherein each pixel contains a single band that itself is a multi-dimensional array composed of the previous individual images, there will often be many empty values due to missing or masked observations in the original images.</p>
+<p>Another data-structure implication is that the number of images in the original collection does not necessarily equal the number of actual observations in each pixel cell. If the timestamps for each image are then recorded alongside the observation's value (i.e., as an array image), each pixel grid then has an individual time series recorded at the pixel level (with the added potential for removing missing data values). Pixel grid cells in the array-image (before sampling) will then, often as a result, have varying numbers of observations and the structure could be described as "jagged".</p>
+<p>At this point, it is possible to use the array-image time data as a basis for subsampling from the entire time series stack. Doing so:</p>
+<ul>
+<li>reduces the time series size</li>
+<li>can turn "jagged" pixel grid cells into time series of uniform length (without masked observations / NA value "holes")</li>
+</ul>
+<h3 id="background">Background</h3>
+<p>The realities of Earth Observation are that datasets are often "jagged" and, moreover, there are often real-world factors that determine the quality of input data.</p>
+<p>For example, with satellite imagery, clouds frequently contaminate parts of scenes rendering certain pixel locations unusable. As well, clouds themselves often exhibit seasonal patterns (e.g., "wet" or "rainy" seasons will often have more clouds than "dry" seasons). Therefore, datasets not only exhibit hetereogeneity in missing values across a spatial scale but also across a temporal scale.</p>
+<p><img alt="Time Series Subsampling Explained" src="../graphics/ts_subsampling_explained.png" /></p>
+<p>The sample time series pictured above illustrates the concepts necessary to understand subsampling. Notice:</p>
+<ul>
+<li>The pictured time series has the most points around the center of the time scale.</li>
+<li>At every point, it's possible to calcuate the number of points neighboring it in time (in other contexts, often called "kernel density").</li>
+<li>When sampling (and therefore reducing the amount of input data) it's optimal first to drop observations with higher temporal density (i.e., denser times) than lower temporal density.</li>
+</ul>
+<h3 id="sampling-methods">Sampling Methods</h3>
+<p>To understand the sampling methods offered, it's important to understand how simple random sampling works conceptually: given any dataset, it's possible to sample data points by assigning a random numeric value between 0 and 1 (exclusive); one can then order the points by these random numbers, and remove <code>x</code> number of points sequentially from <em>the end</em> of the newly ordered series of datapoints (i.e., the points with the highest or lowest numeric value).</p>
+<p>This approach to random sampling has the distinct advantage of allowing arithmetic operations on the numeric values used to sort the data. Namely, one can multiply (i.e., scale) each random numeric value assigned to each data point by a weight value. After doing so, data points with higher weight values will have a greater chance of being sorted <em>on one end</em> (the higher end) of the sorted data.</p>
+<p>For temporal subsampling within GEEODE, the temporal density for each point around a specified time kernel is used as the scaling weight. The higher a point's temporal density is, the greater the chance it will have a higher numeric value when sorting (and thus the greater the likelihood it will be dropped).</p>
+<p>In each figure, the dots represent the observations ordered by temporal density; the observations with the lowest temporal density are prioritized (i.e, "on the top" of each figure). Black dots represent example observations dropped according to the sampling procedure chosen.</p>
+<h4 id="simple-weighted-subsampling">Simple Weighted Subsampling</h4>
+<p>Order the observations by temporal density and remove <code>x</code> numbers of observations starting with the highest and moving towards the lowest such that the desired number of observations is maintained.</p>
+<p><img alt="&quot;Bulk&quot; Simple Weighted Sampling" src="../graphics/bulk_sampling.png" /></p>
+<h4 id="leapfrog-sampling">"Leapfrog" Sampling</h4>
+<p>Sort the observations by temporal density (descending, such that the observations with the highest temporal density come last). Beginning with the last observation, remove every other observation until <code>n</code> the desired number of observations is achieved.</p>
+<p><img alt="&quot;Leapfrog&quot; Sampling" src="../graphics/leapfrog_sampling.png" /></p>
+<h4 id="split-shuffle-sampling">"Split-Shuffle" Sampling</h4>
+<p>Sorted by temporal density, assign every observation in order to <code>s</code> number of groups; order the groups individually by temporal density (descending) then order all groups by natural order (group 1, 2, 3, 4). Starting from the end, remove <code>x</code> number of observations until the desired number of observations is maintained.</p>
+<p>In other words, the original orientation of the weighted observations looks like so:</p>
+<p><img alt="&quot;Split-Shuffle&quot; Sampling" src="../graphics/split_shuffle_sampling_pre.png" /></p>
+<p>After splitting the observations in groups and reordering, the observations would be ordered as such:</p>
+<p><img alt="&quot;Split-Shuffle&quot; Sampling" src="../graphics/split_shuffle_sampling_post.png" /></p>
+<h2 id="considerations">Considerations</h2>
+<p>There are important data-structure implications to this process. Most notably, the structure of the image collection transforms into an image during this process.</p>
+<p>This image can, of course, be converted back into a formal Image Collection object (e.g., by using the <code>ts_image_to_coll</code> function). However, the individual images in the resulting Image Collection <strong>will not</strong> maintain any of the original timestamps (and thus must be given a temporal order deliberately). The time data has been shifted from the image-level to the pixel-level.</p>
+<p>You can then use the time data in/for other pixel level computations, but the missing timestamp data may also affect any future analyses. Consider the implications of changing your data structure when you plan your analytical workflow.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.math", "content.code.copy", "navigation.expand"], "search": "../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
