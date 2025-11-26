@@ -26,7 +26,7 @@ You can access the analytical functions of `geeode` simply by importing the nati
 
 ```javascript
 // Import geeode
-var de_optim = require('users/uzheoas/geeode:geeode.js');
+var geeode = require('users/uzheoas/geeode:geeode.js');
 ```
 
 **Note:** the Javascript implementation of `geeode` *only* includes the analytical functions and **none** of the helper functions (e.g., `pause_and_wait`).
