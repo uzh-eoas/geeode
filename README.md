@@ -8,9 +8,9 @@ Do you commonly use time series data in Google Earth Engine? Are you interested 
 
 With GEEODE you can optimize any arbitrary close-formed alegbraic model on a time series image collection using a process called differential evolution. Various options exist to fine-tune the analysis, and accompanying statistics measuring the degree of optimization (i.e., convergence to a final model) can also be produced.
 
-You'll find a demo below. For questions please contact:
+[Here's](https://uzh-eoas.github.io/geeode/) the documentation.
 
-[Devin Routh](mailto:devin.routh@uzh.ch?subject=GEEODE%20Request) and/or [Claudia Röösli](mailto:claudia.roeoesli@geo.uzh.ch?subject=GEEODE%20Request)
+For questions please contact: [Devin Routh](mailto:devin.routh@uzh.ch?subject=GEEODE%20Request) and/or [Claudia Röösli](mailto:claudia.roeoesli@geo.uzh.ch?subject=GEEODE%20Request)
 
 ### Repo Description
 
