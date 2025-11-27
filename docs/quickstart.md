@@ -111,4 +111,4 @@ The output "coefficients image" will contain the same number of bands (with the 
 
 ### Real World Example
 
-You can find a real world example on an Sentinel-2 NDVI time series [here](https://code.earthengine.google.com/997dfdb87bc52eef20e37ee6ccc70fc8).
+You can find a real world example on an Sentinel-2 NDVI time series [here](https://code.earthengine.google.com/9771b48d1c6ec0358ed377ec49dfe771).
