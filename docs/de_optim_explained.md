@@ -4,7 +4,7 @@
 
 ![Underlying model & sample data](./graphics/generated_randomized_data.png)
 
-*The plot shows the true model `2·ln(x+1)+3` as a curve together with data points randomly generated (directly from the model).*
+*The plot shows the model `2·ln(x+1)+3` as a dotted line together with data points randomly generated directly from the model.*
 
 Given the example data, consider the task of optimizing the fit of a logarithmic function:
 
@@ -94,10 +94,10 @@ where $\mathit{v_m}$ is the mutant vector, and $\mathit{v_x}$ through $\mathit{v
 Crossover involves selecting or creating a function that determines whether a mutant model replaces any single population member, as this function is applied to every individual population member. A commonly used crossover function is a simple binomial function wherein a randomly determined constant number (between 0 and 1) is compared to a crossover constant:
 
 $$
-v_n = v_m\ if\ \mathit{\mathbf{X}} > C\ else\ v_n = v_i
+v_n = v_m\ if\ \mathit{x} > C\ else\ v_n = v_i
 $$
 
-where $\mathit{v_n}$ is the model being recorded during the iteration, $\mathit{v_m}$ is the potential mutant model, $\mathit{v_i}$ is the current model being considered, $\mathbfit{X}$ is a randomly generated constant between 0 and 1, and $\mathit{C}$ is a simple numerical constant (set by the user) between 0 and 1. In this case, if a user sets a value for $\mathit{C}$  that is closer to 0, more mutants substitutions will occur. If the user sets a value closer to 1, fewer substitutions will occur.
+where $\mathit{v_n}$ is the model being recorded during the iteration, $\mathit{v_m}$ is the potential mutant model, $\mathit{v_i}$ is the current model being considered, $\mathit{x}$ is a randomly generated constant between 0 and 1, and $\mathit{C}$ is a simple numerical constant (set by the user) between 0 and 1. In this case, if a user sets a value for $\mathit{C}$  that is closer to 0, more mutants substitutions will occur. If the user sets a value closer to 1, fewer substitutions will occur.
 
 ## 4 Finalize via the Fitness Function
 
@@ -113,6 +113,6 @@ The model with the best fitness value is the optimal solution outputted by the a
 
 ![Optimal curve vs. data](./graphics/final_model.png)
 
-*Shows the underlying model (black), the fittest curve (green), and the original data points.*
+*Shows the underlying model (dotted line), the fittest curve (green), and the original data points.*
 
 ---

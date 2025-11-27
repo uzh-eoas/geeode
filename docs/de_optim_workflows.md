@@ -42,7 +42,7 @@ var collWithPredictions = geeode.apply_model(timeSeries, finalDeOptimOutput, fun
 Map.addLayer(collWithPredictions, {}, 'collWithPredictions', false);
 ```
 
-You can see the example in the GEE Code Playground [here](https://code.earthengine.google.com/4ab865e3add8ec6a6c2ad7bad948044e).
+You can see the example in the GEE Code Playground [here](https://code.earthengine.google.com/92f7ca269a93a5065a1b7a9c3b68ab0d).
 
 There are 2 specific attributes that an inputted population image must fulfill:
 
@@ -55,13 +55,14 @@ There are 2 specific attributes that an inputted population image must fulfill:
 
 Due to the design of the algorithm, users can begin their workflow with a 
 randomly generated set of functions within an initial population and proceed 
-the evolution process. Or, instead of creating a new population of potential
+with the evolution process. Or, instead of creating a new population of potential
 models, users can begin by creating a custom set of population members.
 
 These custom populations can be specified in whatever fashion users choose so 
 long as they match the required format for the function being optimized (i.e., 
 their array dimensionality at the pixel level must match the number of 
-coefficients being optimized and the specified `pop_size`).
+coefficients being optimized and the specified `pop_size`). Even arbitrarily
+constructed can be created to assess parameter spaces of potential interest.
 
 ### "Divide-and-Conquer"
 
@@ -75,7 +76,8 @@ into new populations:
 ```python
 
 # Take a collection of combined de_otpim outputs
-chromoColl = ee.ImageCollection([first_deoptim_output_image,second_deoptim_output_image,third_deoptim_output_image])
+listOfImages = [first_deoptim_output_image,second_deoptim_output_image,third_deoptim_output_image,fourth_deoptim_output_image,fifth_deoptim_output_image]
+chromoColl = ee.ImageCollection.fromImages(listOfImages)
 chromoBandNames = ee.Image(chrompColl.first()).bandNames();
 
 # This new array-image can now be used as an initial population for a new de_optim run.
@@ -89,8 +91,8 @@ chromoArray = chromColl.select(chromoBandNames.removeAll(['RMSE'])).toArray().se
 
 In order to assist with constructing more in-depth workflows, especially in 
 situations where daisy-chaining is necessary, `geeode` offers functions both 
-to easily check whether a given asset already exists (or is running as an asset)
-pause the workflow operation until a particular task has completed.
+to easily check whether a given asset already exists (or is running as a task)
+then pause the workflow operation until a particular task has completed.
 
 ```python
 result = de_optim(
@@ -119,8 +121,8 @@ pause_and_wait('Task_Description')
 
 ```
 
-These functions give users the ability to write any number of steps to their 
-workflows and run them from start to finish without required interactivity.
+These functions give users the ability to write any number of steps into their 
+workflows, running from start to finish without required interactivity.
 
 
 ### Adding Time as a Band

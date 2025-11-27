@@ -17,10 +17,12 @@ You'll find a demo below. For questions please contact:
 - `geeode.js`: the Google Earth Engine Code Editor functions; also importable via `require('users/uzheoas/geeode:geeode.js')`
 - `src`: the Python implementation of the functions
 - `paper`: the directory containing all of the materials for the manuscript
+    - `figure_generation.py` creates the images within `docs/graphics`
 - `docs`: the directory containing documentation files
 - `README.md`: the document you're reading
-- `requirements-docs.txt`: the packages required to serve the documentation as well as run the PyTests
 - `requirements.txt`: a minimal description of the core GEEODE dependencies
+- `requirements-tests.txt`: the packages required to serve the run PyTests
+- `requirements-docs.txt`: the packages required to serve the documentation
 - `LICENSE`: GEEODE's license file
 - `pyproject.toml`: GEEODE's Python configuration file
 
@@ -43,14 +45,19 @@ To make use of GEEODE's workflow functionality via Python, you can install the m
 ```python
 git clone https://github.com/uzh-eoas/geeode.git
 cd geeode
-pip install -e .
+pip install .
 ```
 
 ## Tests
 
-GEEODE is equipped with a full PyTest framework for affirming algorithmic fidelity. To run the tests:
+GEEODE is equipped with a PyTest framework for affirming algorithmic fidelity. To run the tests:
 
-- Create a Python environment using the `requirements-docs.txt`.
-- Move to the `tests` directory (i.e., `cd tests`).
-- Run PyTest via `pytest`
-    - use the `--capture==no` flag to watch the progress via the test's printed statements
+```python
+git clone https://github.com/uzh-eoas/geeode.git
+cd geeode
+pip install -r requirements-tests.txt
+cd tests
+pytest --capture=no
+```
+
+- Use the `--capture=no` flag to watch the progress via the test's printed statements

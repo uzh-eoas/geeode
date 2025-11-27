@@ -711,7 +711,7 @@ exports.sub_sample = function(iC,
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// ts_array_to_coll
+// ts_image_to_coll
 /**
  * Reconstructs an image collection from a subsampled image where time information is stored as a band.
  *
@@ -732,7 +732,7 @@ exports.sub_sample = function(iC,
  * var reconstructed = tsArrayToColl(sampledCollection, 'NDVI', nObservationsToKeep);
  */
 
-exports.ts_array_to_coll = function(ts_image,
+exports.ts_image_to_coll = function(ts_image,
                                 band_name,
                                 ts_length) {
     

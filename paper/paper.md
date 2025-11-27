@@ -300,20 +300,19 @@ temporal density; i.e., time series are reduced to a specific size by removing
 the necessary number points at an individual pixel-level according to their 
 relative frequency across the timespan through a weighted-random sampling 
 process wherein the weights are the calculated as the density of observations 
-around a specified time-window/kernel. See the [documentation](https://uzh-eoas.github.io/geeode/)
+around a specified time-window/kernel. See the [documentation](https://uzh-eoas.github.io/geeode/subsampling/)
 for more details.
 
 ### Testing
 
 Included in the repo is also a PyTest based testing framework to confirm the 
 correct operation of the algorithm. It works by asserting specific algorithmic 
-conditions when tested across arbitrary functional forms generated with 
-randomized parameter sets. In other words, the testing process allows users to 
-confirm that that algorithm:
+conditions when tested across arbitrary functional forms specified with 
+randomly generated parameter sets. In other words, the testing process allows 
+users to confirm that that algorithm:
 
-- **Generates** sets of functional coefficients on **arbitrary**, closed form 
-    algebraic functions such that each coefficient **falls within the numeric**
-    **bounds** provided.
+- **Generates sets of functional coefficients** on **arbitrary **closed-form 
+    algebraic functions** such that each coefficient **falls within the numeric bounds** provided.
 - Moreover, when the coefficient sets are being assessed **as the iterations** 
     **proceed**, the fitness score of the coefficients **either improves or** 
     **stabilizes without exception**.
