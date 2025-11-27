@@ -736,7 +736,7 @@
 <h1 id="de-optimization-explained">DE Optimization Explained</h1>
 <h2 id="conceptual-example">Conceptual Example</h2>
 <p><img alt="Underlying model &amp; sample data" src="../graphics/generated_randomized_data.png" /></p>
-<p><em>The plot shows the true model <code>2·ln(x+1)+3</code> as a curve together with data points randomly generated (directly from the model).</em></p>
+<p><em>The plot shows the model <code>2·ln(x+1)+3</code> as a dotted line together with data points randomly generated directly from the model.</em></p>
 <p>Given the example data, consider the task of optimizing the fit of a logarithmic function:</p>
 <div class="arithmatex">\[
 y = a \cdot \ln(x + b) + c
@@ -797,9 +797,9 @@ $$</p>
 <h3 id="32-crossover">3.2 Crossover</h3>
 <p>Crossover involves selecting or creating a function that determines whether a mutant model replaces any single population member, as this function is applied to every individual population member. A commonly used crossover function is a simple binomial function wherein a randomly determined constant number (between 0 and 1) is compared to a crossover constant:</p>
 <div class="arithmatex">\[
-v_n = v_m\ if\ \mathit{\mathbf{X}} &gt; C\ else\ v_n = v_i
+v_n = v_m\ if\ \mathit{x} &gt; C\ else\ v_n = v_i
 \]</div>
-<p>where <span class="arithmatex">\(\mathit{v_n}\)</span> is the model being recorded during the iteration, <span class="arithmatex">\(\mathit{v_m}\)</span> is the potential mutant model, <span class="arithmatex">\(\mathit{v_i}\)</span> is the current model being considered, <span class="arithmatex">\(\mathbfit{X}\)</span> is a randomly generated constant between 0 and 1, and <span class="arithmatex">\(\mathit{C}\)</span> is a simple numerical constant (set by the user) between 0 and 1. In this case, if a user sets a value for <span class="arithmatex">\(\mathit{C}\)</span>  that is closer to 0, more mutants substitutions will occur. If the user sets a value closer to 1, fewer substitutions will occur.</p>
+<p>where <span class="arithmatex">\(\mathit{v_n}\)</span> is the model being recorded during the iteration, <span class="arithmatex">\(\mathit{v_m}\)</span> is the potential mutant model, <span class="arithmatex">\(\mathit{v_i}\)</span> is the current model being considered, <span class="arithmatex">\(\mathit{x}\)</span> is a randomly generated constant between 0 and 1, and <span class="arithmatex">\(\mathit{C}\)</span> is a simple numerical constant (set by the user) between 0 and 1. In this case, if a user sets a value for <span class="arithmatex">\(\mathit{C}\)</span>  that is closer to 0, more mutants substitutions will occur. If the user sets a value closer to 1, fewer substitutions will occur.</p>
 <h2 id="4-finalize-via-the-fitness-function">4 Finalize via the Fitness Function</h2>
 <p>Once the initial population of models has evolved, the final step is to compute the fitness value for each evolved model:</p>
 <div class="arithmatex">\[
@@ -808,7 +808,7 @@ v_n = v_m\ if\ \mathit{\mathbf{X}} &gt; C\ else\ v_n = v_i
 <p>The model with the best fitness value is the optimal solution outputted by the algorithm at that particular iteration. Of note, the algorithm can be iterated any arbitrary number of times. It is best to stop when the algorithm "converges" to a model with a fitness function value that does not improve over further iterations.</p>
 <h3 id="optimal-solution">Optimal Solution</h3>
 <p><img alt="Optimal curve vs. data" src="../graphics/final_model.png" /></p>
-<p><em>Shows the underlying model (black), the fittest curve (green), and the original data points.</em></p>
+<p><em>Shows the underlying model (dotted line), the fittest curve (green), and the original data points.</em></p>
 <hr />
 
 
