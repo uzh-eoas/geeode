@@ -44,7 +44,7 @@ intermediate outputs also allows users to run multiple populations in
 parallel. The function is implemented in both Javascript and Python, and
 an example on Sentinel-2 data time series is included.
 
-#### Introduction and Statement of Need
+#### Statement of Need
 
 Optimization algorithms based on natural selection, also called genetic
 or evolutionary algorithms, have been used since the 1950\'s [@mitchell1998introduction]
@@ -91,77 +91,7 @@ allows users to take advantage of GEE's queueing system and gives
 greater options for task-based parallelization to accomplish
 computationally rigorous workflows on large amounts of imagery.
 
-#### Overview, Key Features, Implementation Philosophy, and Opportunities for Development
-
-An understanding of the differential evolution algorithm is necessary
-when using the function module. As such, [the documentation](https://uzh-eoas.github.io/geeode/) illustrates
-the concepts and processing steps. Importantly, the components of such a
-genetic algorithm include:
-
-- Population: a population of candidate solutions to a problem; i.e., in
-  this case a generated set of parameters, each defining a mathematical
-  model that can be used to model a dataset. A population can be
-  understood mathematically as a matrix of numbers (or a list of
-  vectors) where every row is a candidate parameter set with the columns
-  being the parameters that are used to define a model.
-
-- Fitness: the objective of this algorithm is to optimize the fitness of
-  the population. Fitness is any metric that measures the quality of a
-  candidate models and thus allows for the comparison of candidate
-  solutions in a population. In this implementation of DE Optim, root
-  mean square error (RMSE) is used by default. At any point during the
-  process (i.e., after any number of iterations), the fittest candidate
-  solution can be selected from the population based on this fitness
-  metric. Thus, after a chosen number of iterations, the candidate model
-  (i.e., the parameter set) describing the fittest curve is considered
-  the optimized model.
-
-- Evolution: the population of candidate solutions is mixed and,
-  ultimately, improved via a combination of procedures with the goal of
-  gradually optimizing the population's fitness. Evolution occurs
-  iteratively, meaning there are discrete steps to mix/combine models
-  and attempt to increase the population's fitness. Two such procedures
-  are:
-
-  - Mutation: combining multiple candidate models to create a new hybrid
-    model--a mutant--which can become a new member of the population. A
-    mutant can be considered the genetic offspring of the candidates
-    used during the mutation procedure. To perform a mutation step, a
-    mutation function must be chosen that selects 1 or more candidate
-    population members and mixes them in some way. The most common
-    mutation functions involve selecting population candidates at random
-    then combining their parameters using simple arithmetic or selecting
-    the fittest population member(s) and performing augmentations on it
-    or with other population members. The GEE implementation allows
-    mutation via randomly selected population members (i.e., from the
-    code: *rand*) or mutation using the fittest population member(s)
-    (i.e., from the code: *best*).
-
-  - Crossover: this is a procedure whereby new candidate solutions,
-    either completely randomly generated or generated via a mutation
-    process, are considered to replace the existing candidate solutions
-    within a population. The crossover procedure can involve using a
-    random process (e.g., the equivalent of rolling a die to determine
-    success/failure) or it can be a function of any population or
-    candidate characteristics. For example, you could flip a coin: if
-    the outcome is heads, a mutant candidate is compared to one of the
-    existing population candidates then the fitter of the two is kept in
-    the population; if the outcome is tails, the population candidate
-    being considered is maintained in the population without any
-    alteration.
-
-The algorithm progresses from an initially randomly or pseudorandomly
-generated set of candidates to a final fittest population candidate that
-is the optimal model describing the best fitting curve for the data. A
-pseudorandomly generated population can be used if the user knows the
-bounds of the parameters being optimized; these bounds can be inputted
-to the DE function to set the limits of a population's individual
-variation and limiting the types of curves that will be considered. For
-example, to optimize a linear equation the user may know that *m* may
-vary only between 1 and 3 while *b* can vary only between 0 and 2, so
-all model parameters are randomly generated within these bounds. After
-generating an initial population, evolution occurs iteratively until a
-defined level of fitness is reached.
+#### Implementation and Opportunities for Development
 
 When searching for optimal parameter values, the algorithm benefits from
 a higher number of iterations in addition to a greater number of
@@ -173,7 +103,7 @@ as a greater number of iterations, require greater computational memory
 and resources. This implementation was structured accordingly to
 parallelize computation as much as possible while also making it
 possible to iteratively produce intermediary populations as evolution
-progresses to produce an eventual optimal candidate solution.
+progresses.
 
 More specifically, if users hit memory limits with their population
 number or their number of iterations, the algorithm allows users to
@@ -197,13 +127,13 @@ rather than just single model parameter sets. It allows users to follow
 the daisy-chain procedure with the output of one iteration becoming the
 input into the following iteration.
 
-The algorithm is furthermore programmed to help the user decide when
-their time series model has been optimized to a desired degree of
+The algorithm is furthermore structured to produce metrics that help the user 
+decide whentheir time series model has been optimized to a desired degree of
 fitness; i.e., when a chosen RMSE value has been achieved. The
 implementation includes an option to produce an RMSE image, termed a
 *screeImage*, to monitor the progression of the optimization success
 with a scree plot similar to what is used in dimensional reduction
-techniques [@cattell1966scree]. This image is comprised of multiple bands
+techniques [@cattell1966scree]. This image is comprised of multiple bands,
 wherein each band is the best RMSE value from the population at that
 iteration. It allows users to determine when convergence on an optimal
 value has been achieved and an acceptable final parameter set has been
@@ -226,60 +156,6 @@ developments to the code include a helper function to randomly subsample
 dense input time series according to relative temporal density, allowing
 for greater control of the size of inputs so that memory limits can be
 better bypassed as well as potential crossover function variations.
-
-#### Pseudocode of the Default Algorithm
-
-For reference, the following pseudocode describes the implementation of
-the algorithm and the parts that have been opened for parallelization:
-
-- $Step\ 1 - \ Create\ or\ Accept\ a\ population\ of\ candidate\ parameter\ vectors$
-
-  - Each population ($P$) has a certain number of vectors ($n$), such
-    that $\{ v_{1},v_{2},\ldots,v_{n}\}$ is comprised of individual
-    parameter vectors ($v_{n}$).
-
-  - Each vector ($v_{n}$) has a number of real valued elements equal to
-    the number parameters being optimized ($p$ from the function being
-    optimized $F(x_{1\ldots}x_{p}$)).
-
-  - Populations can be randomly generated across bounded sets of real
-    numbers or \"inherited" either in totality or vector-by-vector from
-    previous iterations of evolution.
-
-- $Step\ 2 - \ Evolve\ the\ population$
-
-  - Apply a mutation function ($F_{mutation}(v_{1},v_{2},\ldots,v_{n})$)
-    from any number of population vectors that creates a new candidate
-    vector ($v_{c}$) that can be compared to an existing population
-    vector ($v_{y}$), repeating the procedure for all vectors of the
-    population ($\{ v_{1},v_{2},\ldots,v_{n}\}$).
-
-  - Apply a crossover function ($F_{crossover}$($v_{y}{,v}_{c}$))
-    wherein the candidate vector is only accepted as a new member of
-    population if any arbitrary constraints are met.
-
-  - Accept the candidate vector ($v_{c}$) as a replacement for the
-    existing population vector ($v_{y}$) if the function contributes to
-    greater optimization of the model/function (e.g., RMSE for the
-    fitted time series is reduced).
-
-- $Step\ 3 - \ Produce\ the\ desired\ output$
-
-  - If an acceptable reduction in RMSE is observed in the scree plots,
-    then return the final parameter vector ($v_{y}$) from the population
-    ($P$) that results in the optimal fit of the time series.
-
-  - If greater optimization can still be attained, which can be assessed
-    using a scree plot, output an entire population ($P$) that can be
-    used as a starting population, or which can be sliced into
-    individual vectors to create mixed populations.
-
-    - This step allows users the possibility to spread a greater number
-      of population members across multiple tasks; i.e., parallelization
-      at the task level can occur here.
-
-  - For heuristic purposes, it is also possible to produce the metric
-    being assess for optimization (e.g., RMSE) after each mutation step.
 
 ### Additional Functionality
 
@@ -319,8 +195,8 @@ users to confirm that that algorithm:
 
 The existing PyTest framework assesses a variety of functional families— 
 currently including multiple replicates of logarithmic, exponential, harmonic, 
-and linear functions—while also allowing users a structure to expand on the tests
-_ad hoc_ so as to affirm algorithmic fidelity.
+and linear functions—while also allowing users a structure to expand on the 
+tests _ad hoc_ in order to affirm algorithmic fidelity.
 
 #### Acknowledgements
 
