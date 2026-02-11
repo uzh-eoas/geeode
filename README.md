@@ -21,6 +21,11 @@ For questions please contact: [Devin Routh](mailto:devin.routh@uzh.ch?subject=GE
 - `src`: the Python implementation of the functions
 - `paper`: the directory containing all of the materials for the manuscript
     - `figure_generation.py` creates the images within `docs/graphics`
+    - `paper.tex` is the LateX paper file
+    - `paper.bib` is the corresponding BibLateX bibliography file
+    - `jors.cls` specifies the paper's formatting
+    - `main_figure.png` is the principal figure in the paper
+    - `paper.pdf` is the outputted paper PDF from `pdflatex`
 - `docs`: the directory containing documentation files
 - `README.md`: the document you're reading
 - `requirements.txt`: a minimal description of the core GEEODE dependencies
