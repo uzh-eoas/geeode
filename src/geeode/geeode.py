@@ -5,6 +5,7 @@ import time
 import datetime
 import sys
 import re
+from typing import Any
 
 # Required packages
 import ee
@@ -15,14 +16,14 @@ import pandas as pd
 # Analytical Functions
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def de_optim(pop_size = int,
-             iNum = int ,
-             funToOpt = str,
-             inputVars = list[str],
-             inputBounds = list[list[float]],
-             timeSeries = ee.ImageCollection,
-             bandName = str,
-             optParams = {}):
+def de_optim(pop_size: int,
+             iNum: int ,
+             funToOpt: str,
+             inputVars: list[str],
+             inputBounds: list[list[float]],
+             timeSeries: ee.ImageCollection,
+             bandName: str,
+             optParams: dict[str, Any] | None = None):
     
     """
     Perform differential‑evolution optimization on an Earth Engine time‑series.
@@ -78,6 +79,9 @@ def de_optim(pop_size = int,
     
     # !! Before anything else, perform default value setting and type checking
     # !! to assist users with inputting the proper values
+    
+    if optParams is None:
+        optParams = {}
     
     try:
         timeBand = optParams['timeBand']
@@ -487,11 +491,11 @@ def de_optim(pop_size = int,
             return screeImage.select(screeImage.bandNames().removeAll(removeList));
 
 
-def sub_sample(iC = ee.ImageCollection,
-               nKeep = int,
-               sType = str,
-               bandName = str,
-               optParams = {}):
+def sub_sample(iC: ee.ImageCollection,
+               nKeep: int,
+               sType: str,
+               bandName: str,
+               optParams: dict[str, Any] | None = None):
     """
     Subsamples an image collection by temporal density.
 
@@ -530,6 +534,9 @@ def sub_sample(iC = ee.ImageCollection,
     """
     
     # Set optional values to defaults if they are not explicitly defined
+    if optParams is None:
+        optParams = {}
+    
     try:
         nStD = optParams['nStD']
     except KeyError:
@@ -690,9 +697,9 @@ def sub_sample(iC = ee.ImageCollection,
     return image_to_return
 
 
-def ts_image_to_coll(ts_image = ee.Image,
-                     band_name = str,
-                     ts_length = int,):
+def ts_image_to_coll(ts_image: ee.Image,
+                     band_name: str,
+                     ts_length: int,):
     """
 
     A function used to take an outputted image from the `sub_sample` function
@@ -748,9 +755,9 @@ def ts_image_to_coll(ts_image = ee.Image,
     return ts_coll
 
 
-def apply_model(time_series = ee.ImageCollection,
-                de_optim_output = ee.Image,
-                fun_to_opt = str):
+def apply_model(time_series: ee.ImageCollection,
+                de_optim_output: ee.Image,
+                fun_to_opt: str):
     """
     Apply a model expression to each image in a collection.
 
@@ -780,7 +787,7 @@ def apply_model(time_series = ee.ImageCollection,
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-def check_for_tasks(unique_string = str):
+def check_for_tasks(unique_string: str):
     """
 
     A helper function used to check if any tasks within the Earth Engine task queue
@@ -816,9 +823,9 @@ def check_for_tasks(unique_string = str):
     return len(active_tasks) > 0
 
 
-def check_for_asset_then_run_task(asset_id_to_test = str,
-                                 task_to_start = ee.batch.Task,
-                                 unique_string = str):
+def check_for_asset_then_run_task(asset_id_to_test: str,
+                                 task_to_start: ee.batch.Task,
+                                 unique_string: str):
     """
     A helper function used to check if an asset already exists (or a relevant task
     is running); if not, then it starts a task of interest
@@ -866,10 +873,10 @@ def check_for_asset_then_run_task(asset_id_to_test = str,
         print('')
 
 
-def pause_and_wait(unique_id = str,
-                   wait_time = 60,
-                   try_again = False,
-                   max_time = None):
+def pause_and_wait(unique_id: str,
+                   wait_time: int = 60,
+                   try_again: bool = False,
+                   max_time: int | None = None):
     """
     A helper function used to take a "pause" in a workflow to "wait" for tasks to finish.
     

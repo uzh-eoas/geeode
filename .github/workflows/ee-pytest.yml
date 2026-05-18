@@ -1,0 +1,40 @@
+name: PyTest
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements-tests.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install test dependencies
+      run: |
+        pip install -r requirements-tests.txt
+    
+    - name: Run PyTest
+      env:
+        EARTHENGINE_TOKEN: ${{ secrets.EARTHENGINE_TOKEN }}
+      run: |
+        cd tests
+        pytest --capture=no

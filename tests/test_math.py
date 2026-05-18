@@ -19,11 +19,24 @@ import re
 import random
 import copy
 
-# Import and initialize Earth Engine
+# Import and initialize Earth Engine (and other packages required for initialization)
 import ee
+import json
+import os
+import google.oauth2.credentials
 
-# !! If you choose to run this test, you must update this project to your own!
-ee.Initialize(project='uzheoas')
+# !! If you choose to run this test, you must update these credentials to your own!
+stored = json.loads(os.getenv("EARTHENGINE_TOKEN"))
+credentials = google.oauth2.credentials.Credentials(
+    None,
+    token_uri="https://oauth2.googleapis.com/token",
+    client_id=stored["client_id"],
+    client_secret=stored["client_secret"],
+    refresh_token=stored["refresh_token"],
+    quota_project_id=stored["project"],
+)
+
+ee.Initialize(credentials=credentials)
 
 # Import the local modules
 from ..src.geeode.geeode import *
@@ -32,7 +45,7 @@ from ..src.geeode.geeode import *
 gee_username = 'uzheoas'
 
 # Create a folder to situate the output of the pytest runs
-pytest_folder = 'users/'+gee_username+'/pytest'
+pytest_folder = 'users/'+gee_username+'/pytest_results'
 
 try:
     ee.data.getAsset(pytest_folder)
