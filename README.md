@@ -2,6 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/955526798.svg)](https://doi.org/10.5281/zenodo.18611213)
 ![GoogleEarthEngine](https://img.shields.io/badge/google%20earth%20engine-%234285F4?style=for-the-badge&logo=googleearthengine&logoColor=white)
+![PyTest Status](https://github.com/uzh-eoas/geeode/workflows/PyTest/badge.svg)
 
 ![NDVI Curve Fitting](docs/graphics/ee-chart.gif "curve_fitting")
 
