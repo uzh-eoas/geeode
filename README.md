@@ -1,6 +1,6 @@
 # GEEODE: A Google Earth Engine Implementation of Optimization by Differential Evolution
 
-[![DOI](https://zenodo.org/badge/955526798.svg)](https://doi.org/10.5281/zenodo.18611213)
+<a href="https://doi.org/10.5281/zenodo.18611213"><img src="https://zenodo.org/badge/955526798.svg" alt="DOI"></a>
 ![GoogleEarthEngine](https://img.shields.io/badge/google%20earth%20engine-%234285F4?style=for-the-badge&logo=googleearthengine&logoColor=white)
 ![PyTest Status](https://github.com/uzh-eoas/geeode/workflows/PyTest/badge.svg)
 
