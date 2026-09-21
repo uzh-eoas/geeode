@@ -15,40 +15,40 @@ import pandas as pd
 # Analytical Functions
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def de_optim(pop_size = int,
-             iNum = int ,
-             funToOpt = str,
-             inputVars = list[str],
-             inputBounds = list[list[float]],
-             timeSeries = ee.ImageCollection,
-             bandName = str,
-             optParams = {}):
+def de_optim(pop_size: int = 10,
+             iNum: int = 5,
+             funToOpt: str | None = None,
+             inputVars: list[str] | None = None,
+             inputBounds: list[list[float]] | None = None,
+             timeSeries: ee.ImageCollection | None = None,
+             bandName: str | None = None,
+             optParams: dict[str, bool | float | str | int | ee.Image] | None = None) -> ee.Image:
     
-    """
+    r"""
     Perform differential‑evolution optimization on an Earth Engine time‑series.
 
     Args:
-        pop_size (int): the number of population members when generating a new population
-        iNum (int): the number of iterations
-        funToOpt (str): the function you want to optimize in the form of a GEE expression; the function must include the time band as well as all variables you'll be optimizing; band names must be formatted using the prescribed GEE format `b('...')` 
-        inputVars (list[str]): a list of the names of the variables you will optimize
-        inputBounds (list[list[float]]): a list of lists; each sublist describes the numeric bounds (inclusive) that will be used for each variable; the order must match the `inputVars` list
-        timeSeries (ee.ImageCollection): the image collection time series being modelled; each image must have the raw data being modelled as a band name (identified below) as well as a time band and a properly formatted `system:footprint`
-        bandName (str): the band name of the raw data being modelled; each image in the time series must contain this band
-        optParams (dict, optional): optional dictionary of additional parameters; see "Other Parameters" below
+        pop_size: the number of population members when generating a new population
+        iNum: the number of iterations
+        funToOpt: the function you want to optimize in the form of a GEE expression; the function must include the time band as well as all variables you'll be optimizing; band names must be formatted using the prescribed GEE format `b('...')` 
+        inputVars: a list of the names of the variables you will optimize
+        inputBounds: a list of lists; each sublist describes the numeric bounds (inclusive) that will be used for each variable; the order must match the `inputVars` list
+        timeSeries: the image collection time series being modelled; each image must have the raw data being modelled as a band name (identified below) as well as a time band and a properly formatted `system:footprint`
+        bandName: the band name of the raw data being modelled; each image in the time series must contain this band
+        optParams: optional dictionary of additional parameters; see "Other Parameters" below
     
     Other Parameters:
-        timeBand (String, default 'time'): name of the time band:
-        mutationStrategy (String, default rand): mutation strategy; possible values are `rand` and `best`
-        M (Float, default 0.5): mutation factor $M in (0,2]$ within the function $v_x + M * (v_y – v_z)$ where $v_x$,$v_y$, and $v_z$ are population members
-        cr (Float, default 0.7): crossover factor for the binomial selection process $cr in (0,1)$
-        computeScree (Boolean, default False): `True` if you want to return a scree image, else `False`
-        initialPopSeed (Integer, default 1): the seed used to generate the initial population
-        parallelScale (Integer, default 1): the `parallelScale` value used to input into relevant EE functions; $in {1 ... 16}$
-        daisyChain (Boolean, default False): `True` if you want to return the final iteration population image (i.e., an array-image), else `False`
-        startingPopulationImage (ee.Image, default null): the `ee.Image` object to input as a starting population image; must have a Integer value property `seedNum` and must be an array-image formatted according to the variables being optimized
-        existingScreeImage (ee.Image, default null): the `ee.Image` image to input as a starting scree image; should be an object computed from `computeScree`
-        verbosePrinting (Boolean, default False): if `True`, print info upong running
+        timeBand (str, default 'time'): name of the time band
+        mutationStrategy (str, default 'rand'): mutation strategy; possible values are `rand` and `best`
+        M (float, default 0.5): mutation factor $M \in (0,2]$ within the function $v_x + M \cdot (v_y - v_z)$ where $v_x$,$v_y$, and $v_z$ are population members
+        cr (float, default 0.7): crossover factor for the binomial selection process $cr \in (0,1)$
+        computeScree (bool, default False): `True` if you want to return a scree image, else `False`
+        initialPopSeed (int, default 1): the seed used to generate the initial population
+        parallelScale (int, default 1): the `parallelScale` value used to input into relevant EE functions; $\in \{1, \ldots, 16\}$
+        daisyChain (bool, default False): `True` if you want to return the final iteration population image (i.e., an array-image), else `False`
+        startingPopulationImage (ee.Image, default None): the `ee.Image` object to input as a starting population image; must have an Integer value property `seedNum` and must be an array-image formatted according to the variables being optimized
+        existingScreeImage (ee.Image, default None): the `ee.Image` image to input as a starting scree image; should be an object computed from `computeScree`
+        verbosePrinting (bool, default False): if `True`, print info upon running
         
 
     Returns:
@@ -78,86 +78,42 @@ def de_optim(pop_size = int,
     
     # !! Before anything else, perform default value setting and type checking
     # !! to assist users with inputting the proper values
-    
-    try:
-        timeBand = optParams['timeBand']
-    except KeyError:
-        optParams['timeBand'] = 'time'
-        timeBand = optParams['timeBand']
-    
-    try:
-        mutationStrategy = optParams['mutationStrategy']
-    except KeyError:
-        optParams['mutationStrategy'] = 'rand'
-        mutationStrategy = optParams['mutationStrategy']
-    
-    try:
-        M = optParams['M']
-    except KeyError:
-        optParams['M'] = 0.5
-        M = optParams['M']
-    
-    try:
-        cr = optParams['cr']
-    except KeyError:
-        optParams['cr'] = 0.5
-        cr = optParams['cr']
-    
-    try:
-        computeScree = optParams['computeScree']
-    except KeyError:
-        optParams['computeScree'] = False
-        computeScree = optParams['computeScree']
-    
-    try:
-        initialPopSeed = optParams['initialPopSeed']
-    except KeyError:
-        optParams['initialPopSeed'] = 1
-        initialPopSeed = optParams['initialPopSeed']
-    
-    try:
-        parallelScale = optParams['parallelScale']
-    except KeyError:
-        optParams['parallelScale'] = 1
-        parallelScale = optParams['parallelScale']
-    
-    try:
-        daisyChain = optParams['daisyChain']
-    except KeyError:
-        optParams['daisyChain'] = False
-        daisyChain = optParams['daisyChain']
-    
-    try:
-        startingPopulationImage = optParams['startingPopulationImage']
-    except KeyError:
-        optParams['startingPopulationImage'] = None
-        startingPopulationImage = optParams['startingPopulationImage']
-    
-    try:
-        existingScreeImage = optParams['existingScreeImage']
-    except KeyError:
-        optParams['existingScreeImage'] = None
-        existingScreeImage = optParams['existingScreeImage']
-    
-    try:
-        verbosePrinting = optParams['verbosePrinting']
-    except KeyError:
-        optParams['verbosePrinting'] = False
-        verbosePrinting = optParams['verbosePrinting']
 
+    if optParams is None:
+        optParams = {}
+
+    timeBand          = optParams.get('timeBand', 'time')
+    mutationStrategy  = optParams.get('mutationStrategy', 'rand')
+    M                 = optParams.get('M', 0.5)
+    cr                = optParams.get('cr', 0.7)
+    computeScree      = optParams.get('computeScree', False)
+    initialPopSeed    = optParams.get('initialPopSeed', 1)
+    parallelScale     = optParams.get('parallelScale', 1)
+    daisyChain        = optParams.get('daisyChain', False)
+    startingPopulationImage = optParams.get('startingPopulationImage', None)
+    existingScreeImage = optParams.get('existingScreeImage', None)
+    verbosePrinting   = optParams.get('verbosePrinting', False)
+    
+    required = {
+        'funToOpt': funToOpt,
+        'inputVars': inputVars,
+        'inputBounds': inputBounds,
+        'timeSeries': timeSeries,
+        'bandName': bandName,
+    }
+    missing = [k for k, v in required.items() if v is None]
+    if missing:
+        raise ValueError(f"Missing required argument(s): {', '.join(missing)}")
+    
     # Check that the function is formatted correctly
-    propBandRegEx = "b\\('[a-zA-Z]+'\\)";
-    varPreRegEx = "b\\('";
-    varSuffRegEx = "'\\)";
+    propBandRegEx = "b\\('[a-zA-Z_][a-zA-Z0-9_]*'\\)"
+    varPreRegEx = "b\\('"
+    varSuffRegEx = "'\\)"
     matches = re.findall(propBandRegEx,funToOpt)
-
     if len(matches) == 0:
         raise ValueError("Your function must include all of the bands you would like to analyze in the appropriate format (including your specified time band); i.e., b('bandname').")
 
     allVarsList = inputVars + [timeBand];
-    matches = re.findall(propBandRegEx,funToOpt)
-    if len(matches) == 0:
-        raise ValueError("Your function must include all of the bands you would like to analyze in the appropriate format (including your specified time band); i.e., b('bandname').")
     matches = [re.sub(varPreRegEx, '', s) for s in matches]
     matches = [re.sub(varSuffRegEx, '', s) for s in matches]
     if set(allVarsList) != set(matches):
@@ -165,13 +121,19 @@ def de_optim(pop_size = int,
 
     # Check that input bounds are given for every variable
     if len(inputVars) != len(inputBounds):
-      raise ValueError("You must supply a numeric bounds for each of the input variables. Ensure your order is correct!");
+      raise ValueError("You must supply a numeric bounds for each of the input variables. Ensure your order is correct!")
+    
+    # Check inputs are within expected bounds
+    if not (0 < M <= 2):
+        raise ValueError(f"M must be in (0, 2]; got {M}")
+    if not (0 < cr < 1):
+        raise ValueError(f"cr must be in (0, 1); got {cr}")
 
     # Compute / retrieve an area of interest if producing a population image for daisy chaining
     if daisyChain == True:
       aOI = ee.Geometry(ee.Image(timeSeries.first()).get('system:footprint'));
       if aOI.getInfo() == None:
-        raise ValueError("Your time series lacks a proper 'system:footprint'. Set one for each image in the collection then retry the function!");
+        raise ValueError("Your time series lacks a proper 'system:footprint'. Set one for each image in the collection then retry the function!")
 
     # !! Begin the algorithm once inputs are checked
   
@@ -484,29 +446,29 @@ def de_optim(pop_size = int,
             bN = screeImage.bandNames().getInfo()
             rString = re.compile("REMOVE_[0-9]+")
             removeList = list(filter(rString.match, bN))
-            return screeImage.select(screeImage.bandNames().removeAll(removeList));
+            return screeImage.select(screeImage.bandNames().removeAll(removeList).removeAll(['REMOVE']));
 
 
-def sub_sample(iC = ee.ImageCollection,
-               nKeep = int,
-               sType = str,
-               bandName = str,
-               optParams = {}):
-    """
+def sub_sample(iC: ee.ImageCollection | None = None,
+               nKeep: int = 30,
+               sType: str | None = None,
+               bandName: str | None = None,
+               optParams: dict[str, bool | float | int] | None = None) -> ee.Image:
+    r"""
     Subsamples an image collection by temporal density.
 
     Args:
-        iC (ee.ImageCollection): the GEE image collection to subsample
-        nKeep (int): the number of observations to keep at every pixel (maximum)
-        sType (str): the subsampling type you'd like to perform; one of 'bulk', 'splitshuffle', leapfrog'
-        bandName (str): the name of the band (in the image collection) containing your value of interest
+        iC: the GEE image collection to subsample
+        nKeep: the number of observations to keep at every pixel (maximum); typical values may range from 20-50
+        sType: the subsampling type you'd like to perform; one of 'bulk', 'splitshuffle', 'leapfrog'
+        bandName: the name of the band (in the image collection) containing your value of interest
     
-    Other Parameters:  
-        nStD (float, default 0.5): the number of standard deviations to use a kernel width when calculating temporal density
-        timeBandName (str, default 'time'): the name of time band in each image
-        sN (int, default 4): the number of splits if using the 'splitshuffle' mtehod
-        seedNum (int, default 1): the random seed use for shuffling
-        verbosePrinting (Boolean, default False): if `True`, print info upon running
+    Other Parameters:
+        nStD (float, default 0.5): the number of standard deviations to use as a kernel width when calculating temporal density
+        timeBandName (str, default 'time'): the name of the time band in each image
+        sN (int, default 4): the number of splits if using the 'splitshuffle' method
+        seedNum (int, default 1): the random seed used for shuffling
+        verbosePrinting (bool, default False): if `True`, print info upon running
 
     Returns:
         (ee.Image): an image comprised of `nKeep` paired bands; each pair of bands includes the time value and the original observed band values at that time
@@ -523,48 +485,30 @@ def sub_sample(iC = ee.ImageCollection,
             iC=your_image_collection,
             nKeep=30,
             sType='leapfrog',
-            bandName='NDVI
+            bandName='NDVI'
         )
         ```
     
     """
+    # Check for required arguments
+    required = {
+        'iC': iC,
+        'sType': sType,
+        'bandName': bandName,
+    }
+    missing = [k for k, v in required.items() if v is None]
+    if missing:
+        raise ValueError(f"Missing required argument(s): {', '.join(missing)}")
     
     # Set optional values to defaults if they are not explicitly defined
-    try:
-        nStD = optParams['nStD']
-    except KeyError:
-        optParams['nStD'] = 0.5
-        nStD = optParams['nStD']
-    
-    if nStD <= 0:
-        raise ValueError('nStD must be greater than 0!')
+    if optParams is None:
+        optParams = {}
 
-    try:
-        timeBandName = optParams['timeBandName']
-    except KeyError:
-        optParams['timeBandName'] = 'time'
-        timeBandName = optParams['timeBandName']
-    
-    try:
-        sN = optParams['sN']
-    except KeyError:
-        optParams['sN'] = 4
-        sN = optParams['sN']
-    
-    if sN <= 0:
-        raise ValueError('sN must be greater than 0!')
-    
-    try:
-        seedNum = optParams['seedNum']
-    except KeyError:
-        optParams['seedNum'] = 1
-        seedNum = optParams['seedNum']
-    
-    try:
-        verbosePrinting = optParams['verbosePrinting']
-    except KeyError:
-        optParams['verbosePrinting'] = False
-        verbosePrinting = optParams['verbosePrinting']
+    nStD           = optParams.get('nStD', 0.5)
+    timeBandName   = optParams.get('timeBandName', 'time')
+    sN             = optParams.get('sN', 4)
+    seedNum        = optParams.get('seedNum', 1)
+    verbosePrinting = optParams.get('verbosePrinting', False)
     
     # Calculate the desired time standard deviation value
     i_c_time_std_dev_nstd = iC.select(timeBandName).reduce(ee.Reducer.stdDev()).multiply(nStD)
@@ -685,19 +629,18 @@ def sub_sample(iC = ee.ImageCollection,
         image_to_return = sub_sampled_image_lf
     else:
         raise ValueError("Input one of: 'bulk', 'splitshuffle', or 'leapfrog'.")
-        image_to_return = None
 
     return image_to_return
 
 
-def ts_image_to_coll(ts_image = ee.Image,
-                     band_name = str,
-                     ts_length = int,):
-    """
+def ts_image_to_coll(ts_image: ee.Image | None = None,
+                     band_name: str | None = None,
+                     ts_length: int | None = None) -> ee.ImageCollection:
+    r"""
 
     A function used to take an outputted image from the `sub_sample` function
     and transforms it back into an image collection wherein every image has a 'time'
-    band and a band the contains the original sampled observation at that time.
+    band and a band that contains the original sampled observation at that time.
 
     Images in the collection have no time data at the asset/image level; time data
     now exists as a band value. The first image in the collection has the earliest
@@ -705,9 +648,9 @@ def ts_image_to_coll(ts_image = ee.Image,
     pixel), the second image has the second earliest, and so on in temporal order.
 
     Args:
-     ts_image (ee.Image): the image outputted from the `sub_sample` function
-     band_name (str): the original band name of the values being sampled
-     ts_length (int): the number of samples maintained from the original time series per pixel
+     ts_image: the image outputted from the `sub_sample` function
+     band_name: the original band name of the values being sampled
+     ts_length: the number of samples maintained from the original time series per pixel
 
     Returns:
     (ee.ImageCollection): returns an image collection with the time and original observations as bands in each image
@@ -723,6 +666,13 @@ def ts_image_to_coll(ts_image = ee.Image,
         ts_image_to_coll(sampled_collection,'NDVI',n_observations_to_keep)
         ```
     """
+
+    # Validate the required arguments
+    if ts_image is None or band_name is None:
+        raise ValueError("ts_image and band_name are required.")
+    if ts_length is None:
+        raise ValueError("ts_length is required (and it must match the nKeep value used in sub_sample).")
+    
     # Make a function to create a client-side list of numbers
     def make_iter_array(start, end):
         return list(range(start, end + 1))
@@ -748,16 +698,16 @@ def ts_image_to_coll(ts_image = ee.Image,
     return ts_coll
 
 
-def apply_model(time_series = ee.ImageCollection,
-                de_optim_output = ee.Image,
-                fun_to_opt = str):
-    """
+def apply_model(time_series: ee.ImageCollection | None = None,
+                de_optim_output: ee.Image | None = None,
+                fun_to_opt: str | None = None) -> ee.ImageCollection:
+    r"""
     Apply a model expression to each image in a collection.
 
     Args:
-        time_series (ee.ImageCollection): The input time series ImageCollection on which to apply the model
-        de_optim_output (ee.Image): The coefficient image returned by `de_optim`
-        fun_to_opt (str): A string expression to evaluate; e.g., "b('time') * b('a') + b('b')"
+        time_series: The input time series ImageCollection on which to apply the model
+        de_optim_output: The coefficient image returned by `de_optim`
+        fun_to_opt: A string expression to evaluate; e.g., "b('time') * b('a') + b('b')"
 
     Returns:
         (ee.ImageCollection): The collection with a new band named 'predicted'
@@ -780,15 +730,15 @@ def apply_model(time_series = ee.ImageCollection,
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-def check_for_tasks(unique_string = str):
-    """
+def check_for_tasks(unique_string: str) -> bool:
+    r"""
 
     A helper function used to check if any tasks within the Earth Engine task queue
     contains `unique_string` within their description and are currently in a RUNNING
     or READY state.
 
     Args:
-     unique_string (str): will be used to find tasks in your queue that are RUNNING or READY (matched against each tasks `description`)
+     unique_string: will be used to find tasks in your queue that are RUNNING or READY (matched against each tasks `description`)
     
     Returns:
         (bool): `True` if at least one matching task is found; otherwise returns `False`
@@ -816,17 +766,17 @@ def check_for_tasks(unique_string = str):
     return len(active_tasks) > 0
 
 
-def check_for_asset_then_run_task(asset_id_to_test = str,
-                                 task_to_start = ee.batch.Task,
-                                 unique_string = str):
-    """
+def check_for_asset_then_run_task(asset_id_to_test: str,
+                                 task_to_start: ee.batch.Task | None = None,
+                                 unique_string: str | None = None) -> None:
+    r"""
     A helper function used to check if an asset already exists (or a relevant task
     is running); if not, then it starts a task of interest
 
     Args:
-        asset_id_to_test (str): asset id that you will test
-        task_to_start (ee.batch.Task): the task you would like to start
-        unique_string (str): a unique string used to test if the task is already running
+        asset_id_to_test: asset id that you will test
+        task_to_start: the task you would like to start
+        unique_string: a unique string used to test if the task is already running
 
     Notes:
         * It's best to align this function with specific variables used within your
@@ -866,11 +816,11 @@ def check_for_asset_then_run_task(asset_id_to_test = str,
         print('')
 
 
-def pause_and_wait(unique_id = str,
-                   wait_time = 60,
-                   try_again = False,
-                   max_time = None):
-    """
+def pause_and_wait(unique_id: str,
+                   wait_time: int = 60,
+                   try_again: bool = False,
+                   max_time: int | None = None) -> None:
+    r"""
     A helper function used to take a "pause" in a workflow to "wait" for tasks to finish.
     
     Every time the function runs, it checks for tasks in the queue that contain 'unique'
@@ -880,10 +830,10 @@ def pause_and_wait(unique_id = str,
     before following the same protocol once again.
 
     Args:
-        unique_id (str): will be used to find tasks in your queue that are RUNNING or READY
-        wait_time (int): the number of seconds to wait before rechecking for tasks
-        try_again (bool): if True and there are errors, continue trying to check for tasks
-        max_time (int): tasks
+        unique_id: will be used to find tasks in your queue that are RUNNING or READY
+        wait_time: the number of seconds to wait before rechecking for tasks
+        try_again: if True and there are errors, continue trying to check for tasks
+        max_time: maximum task duration in seconds; running tasks exceeding it are cancelled; default `None` (no cancellation)
     
     Raises:
         ValueError: If required inputs are malformed (e.g., `wait_time` must be positive).
@@ -914,9 +864,8 @@ def pause_and_wait(unique_id = str,
             if count == 0:
                 print('No jobs running!\n')
             else:
-                count = 1
                 while count >= 1:
-                    if max_time != None and type(max_time) == int and max_time > 0:
+                    if isinstance(max_time, int) and max_time > 0:
                         rawTaskList = ee.data.listOperations()
                         taskList = pd.json_normalize(rawTaskList)
                         running = taskList.loc[taskList.loc[:,'metadata.state'] == 'RUNNING']
