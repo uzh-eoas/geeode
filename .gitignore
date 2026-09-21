@@ -6,3 +6,5 @@ __pycache__/
 .pytest_cache
 src/geeode.egg-info/
 site/
+build/
+uv.lock

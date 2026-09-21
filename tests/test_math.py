@@ -25,37 +25,90 @@ import json
 import os
 import google.oauth2.credentials
 
-# !! If you choose to run this test, you must update these credentials to your own!
-stored = json.loads(os.getenv("EARTHENGINE_TOKEN"))
-credentials = google.oauth2.credentials.Credentials(
-    None,
-    token_uri="https://oauth2.googleapis.com/token",
-    client_id=stored["client_id"],
-    client_secret=stored["client_secret"],
-    refresh_token=stored["refresh_token"],
-    quota_project_id=stored["project"],
-)
-
-ee.Initialize(credentials=credentials)
-
 # Import the local modules
 from ..src.geeode.geeode import *
 
-# !! Input your GEE username, which should match the project initialized above
-gee_username = 'uzheoas'
+# Initialize Earth Engine using either an auth token (e.g., for CI/CD pipelines) or using the
+# pre-existing local authentication
+def initialize_ee():
+    """
+    Initialize Earth Engine using environment credentials (CI) or local credentials.
+    Raises RuntimeError with clear message if neither method succeeds.
+    """
+    # Method 1: Environment token (for CI / Docker / server deployments)
+    token_str = os.getenv("EARTHENGINE_TOKEN")
+    if token_str:
+        try:
+            stored = json.loads(token_str)
+            credentials = google.oauth2.credentials.Credentials(
+                None,
+                token_uri="https://oauth2.googleapis.com/token",
+                client_id=stored["client_id"],
+                client_secret=stored["client_secret"],
+                refresh_token=stored["refresh_token"],
+                quota_project_id=stored.get("project"),
+            )
+            ee.Initialize(credentials=credentials, optimize_api=True)
+            return
+        except (json.JSONDecodeError, KeyError) as e:
+            raise RuntimeError(
+                f"EARTHENGINE_TOKEN invalid: {e}. "
+                "Format: JSON with client_id, client_secret, refresh_token, project"
+            )
 
-# Create a folder to situate the output of the pytest runs
-pytest_folder = 'users/'+gee_username+'/pytest_results'
+    # Method 2: Local authentication (earthengine authenticate)
+    try:
+        ee.Initialize()
+        return
+    except Exception as e:
+        raise RuntimeError(
+            f"Earth Engine not initialized. Options:\n"
+            f"  1) Run 'ee.Authenticate(force=True)' locally via Python, or\n"
+            f"  2) Set the EARTHENGINE_TOKEN shell/env var.\n"
+            f"Original error: {e}"
+        )
 
+
+initialize_ee()
+
+# Users must set GEEODE_TEST_ASSET_ROOT to a writable Earth Engine asset path
+# (e.g., 'projects/your-project' or 'users/your-username') before running tests.
+# See README for details.
+gee_asset_root = os.getenv("GEEODE_TEST_ASSET_ROOT")
+
+if not gee_asset_root:
+    raise RuntimeError(
+        "GEEODE_TEST_ASSET_ROOT is not set.\n"
+        "This must be a writable Earth Engine asset path where test assets "
+        "can be created; e.g., 'projects/your-project/assets' or 'users/your-username'.\n"
+        "Set it before running the tests:\n"
+        "    GEEODE_TEST_ASSET_ROOT='projects/your-project' pytest --capture=no\n"
+        "See the 'Running Tests' section of the README for more information."
+    )
+
+gee_asset_root = gee_asset_root.rstrip("/")
+pytest_folder = f"{gee_asset_root}/geeode-pytest-results"
+
+# Create the folder if needed
 try:
     ee.data.getAsset(pytest_folder)
-    print(f'Folder already exists: {pytest_folder}')
+    print(f"Folder already exists: {pytest_folder}")
 except ee.EEException:
-    ee.data.createFolder(pytest_folder)
-    print(f'Folder created: {pytest_folder}')
+    # Folder doesn't exist; try to create it
+    try:
+        ee.data.createFolder(pytest_folder)
+        print(f"Folder created: {pytest_folder}")
+    except ee.EEException as create_error:
+        raise RuntimeError(
+            f"Could not create folder '{pytest_folder}'.\n"
+            f"Verify that GEEODE_TEST_ASSET_ROOT ('{gee_asset_root}') is a valid, "
+            f"writable asset path. For cloud projects this must include the "
+            f"'/assets' segment; e.g.m 'projects/your-project/assets'.\n"
+            f"Original error: {create_error}"
+        ) from create_error
 except Exception as error:
-    print(f'Something went wrong when checking for the asset: {asset_id_to_test}')
-    print(error)
+    print(f"Warning: Unexpected error checking asset folder '{pytest_folder}'.")
+    print(f"Error details: {error}")
 
 
 # Input a list of dictionaries with an expression to evaluate, its name (for reference,
@@ -73,7 +126,7 @@ expListOfDict = [{"expression":"b('a') * log(b('time') + b('b')) + b('c')",
                   "boundsList":[[1, 9],[1, 9]],
                   "vars":['a','b']},
                  {"expression":"(b('a') * b('time') ** 2) + (b('b') * b('time') + b('c'))",
-                  "name":"exponential",
+                  "name":"quadratic",
                   "boundsList":[[1, 9],[1, 9],[1, 9]],
                   "vars":['a','b','c']},
                  {"expression":"b('a') * sin(b('time') + b('b'))",
@@ -83,7 +136,7 @@ expListOfDict = [{"expression":"b('a') * log(b('time') + b('b')) + b('c')",
 
 
 paramList = []
-expListOfDictCopy = expListOfDict
+expListOfDictCopy = copy.deepcopy(expListOfDict)
 
 # Input the number of replicates (i.e., number of randomized datasets to generate/assess)
 # then bundle all replicate data into dictionaries for later use
