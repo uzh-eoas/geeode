@@ -48,7 +48,7 @@ def initialize_ee():
                 refresh_token=stored["refresh_token"],
                 quota_project_id=stored.get("project"),
             )
-            ee.Initialize(credentials=credentials, optimize_api=True)
+            ee.Initialize(credentials=credentials)
             return
         except (json.JSONDecodeError, KeyError) as e:
             raise RuntimeError(
