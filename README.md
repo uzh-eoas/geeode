@@ -10,7 +10,7 @@
 
 Do you commonly use time series data in Google Earth Engine? Are you interested in modelling these time series using mathematical models of arbitrary forms (e.g., linear, exponential, logarithmic, etc.)? If so, consider GEEODE as an option for your task.
 
-With GEEODE you can optimize any arbitrary close-formed alegbraic model on a time series image collection using a process called differential evolution. Various options exist to fine-tune the analysis, and accompanying statistics measuring the degree of optimization (i.e., convergence to a final model) can also be produced.
+With GEEODE you can optimize any arbitrary closed-formed algebraic model (expressible via GEE syntax) on a time series image collection using a process called differential evolution. Various options exist to fine-tune the analysis, and accompanying statistics measuring the degree of optimization (i.e., convergence to a final model) can also be produced.
 
 [Here's](https://uzh-eoas.github.io/geeode/) the documentation.
 
@@ -51,7 +51,7 @@ This functionality makes use of Earth Engines [script module](https://developers
 
 To make use of GEEODE's workflow functionality via Python, you can install the module from source via:
 
-```python
+```bash
 git clone https://github.com/uzh-eoas/geeode.git
 cd geeode
 pip install .
@@ -59,14 +59,43 @@ pip install .
 
 ## Tests
 
-GEEODE is equipped with a PyTest framework for affirming algorithmic fidelity. To run the tests:
+GEEODE is equipped with a PyTest framework for affirming algorithmic fidelity. The test is designed to run locally using existing GEE credentials or via a token. To run the tests:
 
-```python
+```bash
 git clone https://github.com/uzh-eoas/geeode.git
 cd geeode
 pip install -r requirements-tests.txt
 cd tests
-pytest --capture=no
+GEEODE_TEST_ASSET_ROOT='projects/<USERNAME>/assets' pytest --capture=no
 ```
 
+When executing the tests, make sure to update `<USERNAME>` with the username that matches the asset location tied to the authenticated GEE account. For reference, `GEEODE_TEST_ASSET_ROOT='projects/<USERDEFINED>/assets'` ensures the test assets are placed in the proper location for the tests.
+
 - Use the `--capture=no` flag to watch the progress via the test's printed statements
+
+If you encounter local credentials issues, consider re-authenticating via Python with `import ee; ee.Authenticate()` or via the [GEE command line tool](https://developers.google.com/earth-engine/guides/command_line#authenticate) using `earthengine authenticate`.
+
+### Cleaning Up Test Assets
+
+The PyTest creates Earth Engine assets in a folder titled `geeode-pytest-results` created within the path you supply as `GEEODE_TEST_ASSET_ROOT`. While keeping these assets speeds up subsequent test runs (given the assets are reused rather than recomputed), you may wish to remove them periodically to reclaim quota space or to force a fully clean test run.
+
+To delete all test assets, run the following from a Python session (or script) after authenticating with the account you used for testing (and after updating the `<USERNAME>` information within `asset_root`):
+
+```python
+import ee
+ee.Initialize()
+
+# Set this to the same value you used for GEEODE_TEST_ASSET_ROOT
+asset_root = 'projects/<PROJECTNAME>/assets'
+folder = f'{asset_root}/geeode-pytest-results'
+
+# Delete all assets in the test results folder, then the folder itself
+for asset in ee.data.listAssets({'parent': folder})['assets']:
+    ee.data.deleteAsset(asset['name'])
+    print(f'Deleted: {asset["name"]}')
+
+ee.data.deleteAsset(folder)
+print(f'Deleted folder: {folder}')
+```
+
+Alternatively, you can run `earthengine rm -r projects/<PROJECTNAME>/assets/geeode-pytest-results` using the [GEE command line tool](https://developers.google.com/earth-engine/guides/command_line#rm).
