@@ -18,6 +18,8 @@ import itertools
 import re
 import random
 import copy
+import math
+import statistics
 
 # Import and initialize Earth Engine (and other packages required for initialization)
 import ee
@@ -26,15 +28,12 @@ import os
 import google.oauth2.credentials
 
 # Import the local modules
-from ..src.geeode.geeode import *
+from geeode.src.geeode.geeode import *
 
 # Initialize Earth Engine using either an auth token (e.g., for CI/CD pipelines) or using the
 # pre-existing local authentication
+# Raises RuntimeError with clear message if neither method succeeds.
 def initialize_ee():
-    """
-    Initialize Earth Engine using environment credentials (CI) or local credentials.
-    Raises RuntimeError with clear message if neither method succeeds.
-    """
     # Method 1: Environment token (for CI / Docker / server deployments)
     token_str = os.getenv("EARTHENGINE_TOKEN")
     if token_str:
@@ -71,10 +70,12 @@ def initialize_ee():
 
 initialize_ee()
 
+
 # Users must set GEEODE_TEST_ASSET_ROOT to a writable Earth Engine asset path
 # (e.g., 'projects/your-project' or 'users/your-username') before running tests.
 # See README for details.
 gee_asset_root = os.getenv("GEEODE_TEST_ASSET_ROOT")
+gee_asset_root = "projects/ee-devinrouth/assets"
 
 if not gee_asset_root:
     raise RuntimeError(
@@ -110,7 +111,8 @@ except Exception as error:
     print(f"Warning: Unexpected error checking asset folder '{pytest_folder}'.")
     print(f"Error details: {error}")
 
-
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# DE Optim Test
 # Input a list of dictionaries with an expression to evaluate, its name (for reference,
 # the bounds for the function's coefficients, and the names of the coefficients
 expListOfDict = [{"expression":"b('a') * log(b('time') + b('b')) + b('c')",
@@ -151,6 +153,7 @@ for idx, expOI in enumerate(expListOfDictCopy):
             v_form.append(f)
         random.seed(repl)
         numbers = [random.randint(lo, hi) for lo, hi in expOI["boundsList"]]
+        expListOfDictCopy[idx]["trueCoeffs"] = numbers
         l = numbers
         s = expOI["expression"]
         for placeholder, value in zip(v_form, l): s = s.replace(placeholder, str(value))
@@ -160,6 +163,24 @@ for idx, expOI in enumerate(expListOfDictCopy):
         expListOfDictCopy[idx]["repl"] = repl
         paramList.append(dict(expListOfDictCopy[idx]))
 
+
+# Instantiate functions and variables to test that the algorithm approaches convergence
+# on the actual (randomly computed) coefficient values.
+MAX_ERROR_DECIMAL = 0.1
+def signal_rms(rand_expr):
+    # Evaluate a GEE-style expression (variable b('num')) as plain Python
+    py_expr = rand_expr.replace("b('num')", "t")
+    vals = [eval(py_expr, {"log": math.log, "sin": math.sin, "t": t}) for t in range(1, 31)]
+    return math.sqrt(sum(v * v for v in vals) / len(vals))
+
+rmse_floor_lookup = {
+    (p['name'], p['repl']): MAX_ERROR_DECIMAL * signal_rms(p['randExpression'])
+    for p in paramList
+}
+
+MIN_ITER_FOR_FLOOR = 25
+FLOOR_TOLERANCE = 2.0 
+MIN_POP_FOR_FLOOR = 10
 
 # Create the initial sets of populations and iterations to sweep
 # Default options for test were chosen to circumvent any out-of-memory errors on single tasks
@@ -226,12 +247,10 @@ for combo in all_combos:
     expressionApplied = numImColl.map(apply_expression)
 
     # Apply some random error to the series so it's ready to model // as an example dataset
-    maxErrorDecimal = 0.1
-
     def computeError(i):
         seed = ee.Number(ee.Image(i).get('num'))
         randomField = ee.Image.random(seed, 'normal')
-        maxError = i.select('num').multiply(ee.Image.constant(maxErrorDecimal))
+        maxError = i.select('num').multiply(ee.Image.constant(MAX_ERROR_DECIMAL))
         finalError = maxError.multiply(randomField)
         imageToCast = (
             i.select('num')
@@ -273,7 +292,12 @@ for combo in all_combos:
 pause_and_wait('pytest')
 
 # Compute the family names of the replicates
-replfam_filters = list(set(replfam_list))
+fam_map = {}
+for combo in all_combos:
+    fam = ('pytest_' + combo[0]['name'] + '_p' + str(combo[1]).zfill(3)
+           + '_repl' + str(combo[0]['repl']))
+    fam_map[fam] = (combo[0]['name'], combo[0]['repl'])
+replfam_filters = sorted(fam_map)
 replicate_families = [[asset for asset in asset_list if rf in asset] for rf in replfam_filters]
 replicate_families
 
@@ -284,8 +308,22 @@ output_colls = [ee.FeatureCollection(c).flatten().sort('repl',True) for c in nes
 fitness_rmse = [ee.FeatureCollection(fc).aggregate_array('RMSE').getInfo() for fc in output_colls]
 error_value_to_check = [all(x <= y for y, x in zip(l, l[1:])) for l in fitness_rmse]
 
+# Pair converged-run RMSE values with their analytic noise floors
+rmse_floor_results = []
+for fam, rmse_list in zip(replfam_filters, fitness_rmse):
+    fun_name, repl = fam_map[fam]
+    floor = rmse_floor_lookup[(fun_name, repl)]
+    pop = int(re.search(r'_p(\d{3})_', fam).group(1))
+    for it, rmse in zip(sorted(iterations), rmse_list):
+        if it >= MIN_ITER_FOR_FLOOR and pop >= MIN_POP_FOR_FLOOR:
+            rmse_floor_results.append((fam, it, rmse, floor))
 
-# Compute the coefficients values to test
+# Diagnostic: print RMSE-to-floor ratios to calibrate FLOOR_TOLERANCE
+for fam, it, rmse, floor in rmse_floor_results:
+    print(f"{fam} iNum={it}: RMSE/floor = {rmse / floor:.2f}")
+
+
+# Compute the coefficient values to test
 list_of_feature_lists = [ee.FeatureCollection(fc).toList(len(iterations)) for fc in output_colls]
 list_of_prop_dicts = [f.map(lambda f: ee.Feature(f).toDictionary().remove(['RMSE'])).getInfo() for f in list_of_feature_lists]
 list_of_prop_dicts_copy = copy.deepcopy(list_of_prop_dicts)
@@ -305,21 +343,29 @@ for l in list_of_prop_dicts_copy:
         coeff_results.append(results)
 
 
-# Apply the tests
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Apply the test assertions
 
 # Error/Loss Function Optimization
 # Assert that the optimization of a loss/error function has occurred uniformly throughout the iterations.
-# The test asserts that "If true, all replicates pass".
+# I.e., RMSE never increases (or remains unchanged) from one iteration to the next.
 def test_error():
-    """Return True if seq never increases (or remains unchanged) from one element to the next."""
     assert all(error_value_to_check)
 
 
 # Make a function that tests whether numbers fall within the supplied bounds.
-# The test asserts that "If true, all replicates pass".
+# The test asserts that "If true, all generated coefficients fall within their designated bounds".
 def test_coefficients():
-    """Return True if all generated coefficients fall within their designated bounds."""
     assert all(all(d.values()) for d in coeff_results)
 
-
+# Assert that the final values approach (or even exceed in quality) the actual RMSE of the 
+# true coefficients (within a reasonable threshold). Converged runs (iNum >= 25) must approach the analytic noise floor.
+def test_rmse_floor():
+    failures = [
+        f"{fam} iNum={it}: RMSE={rmse:.3f} exceeds "
+        f"{FLOOR_TOLERANCE}x floor ({FLOOR_TOLERANCE * floor:.3f})"
+        for fam, it, rmse, floor in rmse_floor_results
+        if rmse > FLOOR_TOLERANCE * floor
+    ]
+    assert not failures, "\n".join(failures)
 
