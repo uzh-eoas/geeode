@@ -469,6 +469,7 @@ def sub_sample(iC: ee.ImageCollection | None = None,
         sN (int, default 4): the number of splits if using the 'splitshuffle' method
         seedNum (int, default 1): the random seed used for shuffling
         verbosePrinting (bool, default False): if `True`, print info upon running
+        randomizeSort (bool, default True): if `True`, sort observations by randomized densities (density values multiplied by a random value); else, use raw densities
 
     Returns:
         (ee.Image): an image comprised of `nKeep` paired bands; each pair of bands includes the time value and the original observed band values at that time
@@ -509,37 +510,63 @@ def sub_sample(iC: ee.ImageCollection | None = None,
     sN             = optParams.get('sN', 4)
     seedNum        = optParams.get('seedNum', 1)
     verbosePrinting = optParams.get('verbosePrinting', False)
+    randomizeSort = optParams.get('randomizeSort', True)
+    
+    # Add a positional index to each image for downstream use as a seed
+    n_imgs = iC.size()
+    img_list = iC.toList(n_imgs)
+    iC = ee.ImageCollection(ee.List.sequence(0, n_imgs.subtract(1)).map(lambda idx: ee.Image(img_list.get(idx)).set('indexSeed', idx)))
     
     # Calculate the desired time standard deviation value
     i_c_time_std_dev_nstd = iC.select(timeBandName).reduce(ee.Reducer.stdDev()).multiply(nStD)
 
     # Add ± min/max times (based on nStD) for temporal filtering
     def map_i(i):
-        return i.addBands(i.select(timeBandName).add(i_c_time_std_dev_nstd).rename('max_time')) \
-                 .addBands(i.select(timeBandName).subtract(i_c_time_std_dev_nstd).rename('minTime'))
+        return i.addBands(i.select(timeBandName).add(i_c_time_std_dev_nstd).rename('maxTime')) \
+                 .addBands(i.select(timeBandName).subtract(i_c_time_std_dev_nstd).rename('minTime')) \
+                 .addBands(i.select([bandName],['unmaskedBandArray']).mask().unmask(0));
 
     i_c_with_min_max = iC.map(map_i)
+    
+    # Convert just the time steps to a single 1D array image
+    maskArray = i_c_with_min_max.select('unmaskedBandArray').toArray();
+    globalTimeArray = i_c_with_min_max.select(timeBandName).toArray().arrayMask(maskArray);
+    combinedArray = i_c_with_min_max.select([timeBandName, 'unmaskedBandArray']).toArray();
+    bandMaskArray = combinedArray.arraySlice(1,1,2)
+    globalTimeArrayTest = combinedArray.arraySlice(1,0,1).arrayMask(bandMaskArray)
+    
+    # Define the unnested density filter function
+    def temporalDensityFilter(img):
+        # Compare the min and max time values
+        localMin = img.select('minTime');
+        localMax = img.select('maxTime');
+    
+        # Compare the global time array against this single image's thresholds
+        matches = globalTimeArrayTest.gt(localMin).And(globalTimeArrayTest.lt(localMax));
+    
+        # Sum the matches to get a scalar density band
+        densityBand = matches.arrayReduce(ee.Reducer.sum(),[0]).arrayFlatten([['n'],['density']]).select(['n_density'],['density']);
+        
+        # Retrieve the image's system:version as the individual seed across images
+        iSystemVersion = ee.Number(img.get('indexSeed'));
+        
+        # Use either randomized densities or raw densities to sort the observations
+        if randomizeSort:
+            weightBand = densityBand.multiply(ee.Image.random(iSystemVersion));
+        else:
+            weightBand = densityBand;
+    
+        # Re-apply your original weight logic to the standard image
+        return img.addBands(densityBand.updateMask(img.select(bandName).mask())) \
+            .addBands(ee.Image.random(seedNum).add(1).rename('random').updateMask(img.select(bandName).mask())) \
+            .addBands(weightBand.rename('weight').updateMask(img.select(bandName).mask()));
 
-    # Filter based on ±min/max
-    def min_max_filter(o):
-        def min_max_inner(i):
-            test_band = i.select(timeBandName).gt(o.select('minTime')) \
-                        .And(i.select(timeBandName).lt(o.select('max_time'))) \
-                        .rename('density').updateMask(i.select(bandName).mask())
-            value_to_sum = i.addBands(test_band)
-            return value_to_sum
-
-        density_band = i_c_with_min_max.map(min_max_inner).select('density').sum()
-        return o.addBands(density_band.updateMask(o.select(bandName).mask())) \
-                 .addBands(ee.Image.random(seedNum).add(1).rename('random').updateMask(o.select(bandName).mask())) \
-                 .addBands(density_band.multiply(ee.Image.random(seedNum).add(1)).rename('weight').updateMask(o.select(bandName).mask()))
-
-    density_coll = i_c_with_min_max.map(min_max_filter)
+    density_coll = i_c_with_min_max.map(temporalDensityFilter)
 
     keys_shuffle = density_coll.select('weight').toArray()
 
     # Shuffle the time series values according to temporal density weight
-    original_ts = density_coll.select(bandName, timeBandName).toArray()
+    original_ts = density_coll.map(lambda i: i.addBands(ee.Image.constant(1).rename("valid"))).select(bandName, timeBandName, "valid").toArray()
     density_coll_shuffled = original_ts.arraySort(keys_shuffle)
 
     # Format array images that will serve as array masks, allowing for subsampled values to 
@@ -583,10 +610,17 @@ def sub_sample(iC: ee.ImageCollection | None = None,
     n_l = ee.List.sequence(1, nKeep).map(format_number)
 
     # Bulk sampling
-    bulk_sampling_sliced = density_coll_shuffled.arraySlice(0, 0, nKeep)
-    bulk_sampling_time_keys = bulk_sampling_sliced.arraySlice(1, -1)
-    bulk_sampled_array_image = bulk_sampling_sliced.arraySort(bulk_sampling_time_keys)
-    sub_sampled_image_bulk = bulk_sampled_array_image.arrayPad([nKeep, 2]).arrayFlatten([n_l, [bandName, timeBandName]], '_').selfMask()
+    bulkSamplingSliced = density_coll_shuffled.arraySlice(0, 0, nKeep);
+    bulkSamplingTimeKeys = bulkSamplingSliced.arraySlice(1, -2, -1);
+    bulkSampledArrayImage = bulkSamplingSliced.arraySort(bulkSamplingTimeKeys);
+    bulkPadded = bulkSampledArrayImage.arrayPad([nKeep, 3]);
+    bulkFlattened = bulkPadded.arrayFlatten([n_l, [bandName, timeBandName, 'valid']], '_');
+    bulkValidBands = bulkFlattened.select(bulkFlattened.bandNames().filter(ee.Filter.stringContains('item', 'valid')));
+    bulkTimeBandsMasked = bulkFlattened.select(bulkFlattened.bandNames().filter(ee.Filter.stringContains('item', timeBandName))).updateMask(bulkValidBands);
+    bulkBandNameBandsMasked = bulkFlattened.select(bulkFlattened.bandNames().filter(ee.Filter.stringContains('item', bandName))).updateMask(bulkValidBands);
+    subSampledImageBulkUnSorted = ee.Image.cat(bulkTimeBandsMasked,bulkBandNameBandsMasked);
+    subSampledImageBulkUnSortedNames = subSampledImageBulkUnSorted.bandNames().sort();
+    sub_sampled_image_bulk = subSampledImageBulkUnSorted.select(subSampledImageBulkUnSortedNames);
 
     # Split shuffle sampling
     # Use the sN (number of splits) input to split the array pseudo randomly
@@ -600,19 +634,30 @@ def sub_sample(iC: ee.ImageCollection | None = None,
         return ee.Image(density_coll_shuffled).arraySlice(axis = 0, start = ee.Image(i).int(), step = sN)
 
     split_shuffled_arrays = n_coll.map(array_slice_collection).toArrayPerBand()
-    density_coll_sliced_split_shuffled = split_shuffled_arrays.arraySlice(axis = 0, end = ee.Image.constant(nKeep))
-    keys_time_split_shuffled = density_coll_sliced_split_shuffled.arraySlice(1, -1)
-    density_coll_sorted_split_shuffled = density_coll_sliced_split_shuffled.arraySort(keys_time_split_shuffled)
-    density_coll_padded_split_shuffled = density_coll_sorted_split_shuffled.arrayPad([nKeep, 2])
-    sub_sampled_image_split_shuffled = density_coll_padded_split_shuffled.arrayFlatten([n_l, [bandName, timeBandName]], '_').selfMask()
+    densityCollSortedSplitShuffled = split_shuffled_arrays.arraySlice(axis = 0, end = ee.Image.constant(nKeep))
+    keysTimeSplitShuffled = densityCollSortedSplitShuffled.arraySlice(1, -2, -1);
+    densityCollSortedSplitShuffled = densityCollSortedSplitShuffled.arraySort(keysTimeSplitShuffled);
+    densityCollPaddedSplitShuffled = densityCollSortedSplitShuffled.arrayPad([nKeep, 3]);
+    subSampledImageSplitShuffledFlat = densityCollPaddedSplitShuffled.arrayFlatten([n_l, [bandName, timeBandName, 'valid']], '_');
+    splitShuffleValidBands = subSampledImageSplitShuffledFlat.select(subSampledImageSplitShuffledFlat.bandNames().filter(ee.Filter.stringContains('item', 'valid')));
+    splitShuffTimeBandsMasked = subSampledImageSplitShuffledFlat.select(bulkFlattened.bandNames().filter(ee.Filter.stringContains('item', timeBandName))).updateMask(splitShuffleValidBands);
+    splitShuffBandNameBandsMasked = subSampledImageSplitShuffledFlat.select(bulkFlattened.bandNames().filter(ee.Filter.stringContains('item', bandName))).updateMask(splitShuffleValidBands);
+    subSampledImageSplitShuffUnSorted = ee.Image.cat(splitShuffTimeBandsMasked,splitShuffBandNameBandsMasked);
+    subSampledImageSplitShuffUnSortedNames = subSampledImageSplitShuffUnSorted.bandNames().sort();
+    sub_sampled_image_split_shuffled = subSampledImageSplitShuffUnSorted.select(subSampledImageSplitShuffUnSortedNames);
 
-    # Apply the array-mask to confirm the subsampling (leapfrog)
+    # Leapfrog sampling
     density_coll_masked_lf = density_coll_shuffled.arrayMask(mask_array.arrayRepeat(1, ee.Image(1)))
-    time_sorting_keys_lf = density_coll_masked_lf.arraySlice(axis = 1, start = ee.Image.constant(-1))
-    density_coll_masked_sorted_lf = density_coll_masked_lf.arraySort(time_sorting_keys_lf)
-
-    # Mask the flattened array-image with itself to remove 0 values
-    sub_sampled_image_lf = density_coll_masked_sorted_lf.arrayPad([nKeep, 2]).arrayFlatten([n_l, [bandName, timeBandName]], '_').selfMask()
+    timeSortingKeysLF = density_coll_masked_lf.arraySlice(1, -2, -1);
+    densityCollMaskedSortedLF = density_coll_masked_lf.arraySort(timeSortingKeysLF);
+    lFPadded = densityCollMaskedSortedLF.arrayPad([nKeep, 3])
+    lFFlattened = lFPadded.arrayFlatten([n_l, [bandName, timeBandName, 'valid']], '_');
+    lFValidBands = lFFlattened.select(lFFlattened.bandNames().filter(ee.Filter.stringContains('item', 'valid')));
+    lFTimeBandsMasked = lFFlattened.select(lFFlattened.bandNames().filter(ee.Filter.stringContains('item', timeBandName))).updateMask(lFValidBands);
+    lFBandNameBandsMasked = lFFlattened.select(lFFlattened.bandNames().filter(ee.Filter.stringContains('item', bandName))).updateMask(lFValidBands);
+    subSampledImagelFUnSorted = ee.Image.cat(lFTimeBandsMasked,lFBandNameBandsMasked);
+    subSampledImagelFUnSortedNames = subSampledImagelFUnSorted.bandNames().sort();
+    sub_sampled_image_lf = subSampledImagelFUnSorted.select(subSampledImagelFUnSortedNames);
 
     # Return the image collection of interest
     if sType == 'bulk':

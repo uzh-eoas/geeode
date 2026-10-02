@@ -510,11 +510,13 @@ exports.de_optim = function(pop_size,
  * @param {string} sType - the subsampling type you'd like to perform; one of `'bulk'`, `'splitshuffle'`, `'leapfrog'`
  * @param {string} bandName - the name of the band (in the image collection) containing your value of interest
  *
+ * Optional parameters
  * @param {number} [nStD=0.5] - the number of standard deviations to use as a kernel width when calculating temporal density
  * @param {string} [timeBandName='time'] - the name of the time band in each image
  * @param {number} [sN=4] - the number of splits if using the `'splitshuffle'` method
  * @param {number} [seedNum=1] - the random seed used for shuffling
  * @param {boolean} [verbosePrinting=false] - if `true`, print info upon running
+ * @param {boolean} [randomizeSort=true] - if `True`, sort observations by randomized densities (density values multiplied by a random value); else, use raw densities
  *
  * @returns {ee.Image} An image comprised of `nKeep` paired bands; each pair of bands includes the time value and the original observed band values at that time
  *
@@ -571,39 +573,70 @@ exports.sub_sample = function(iC,
         verbosePrinting = false;
     }
     
+    var randomizeSort = optParams.randomizeSort;
+    if (randomizeSort === undefined) {
+        randomizeSort = true;
+    }
+    
+    // Add a positional index to each image for downstream use as a seed
+    var nImgs = iC.size();
+    var imgList = iC.toList(nImgs);
+    var iC = ee.ImageCollection(ee.List.sequence(0, nImgs.subtract(1)).map(function(idx) {
+        return ee.Image(imgList.get(idx)).set('indexSeed', idx);
+      }));
+    
     // Calculate the desired time standard deviation value
-    var iCTimeStdDevHalf = iC.select('time').reduce(ee.Reducer.stdDev()).multiply(0.5);
+    var iCTimeStdDevHalf = iC.select(timeBandName).reduce(ee.Reducer.stdDev()).multiply(nStD);
 
-    // Add ± min/max times (based on 0.5 StdDev) for temporal filtering
+    // Add ± min/max times (based on nStD StdDev) for temporal filtering
     var iCWithMinMax = iC.map(function(i) {
-        return i.addBands(i.select('time').add(iCTimeStdDevHalf).rename('maxTime'))
-            .addBands(i.select('time').subtract(iCTimeStdDevHalf).rename('minTime'));
+        return i.addBands(i.select(timeBandName).add(iCTimeStdDevHalf).rename('maxTime'))
+            .addBands(i.select(timeBandName).subtract(iCTimeStdDevHalf).rename('minTime'))
+            .addBands(i.select([bandName],['unmaskedBandArray']).mask().unmask(0));
     });
 
-    // Filter based on ±min/max
-    var densityColl = iCWithMinMax.map(function(o) {
-
-        var densityBand = iCWithMinMax.map(function(i) {
-
-            var testBand = i.select('time').gt(o.select('minTime'))
-                .and(i.select('time').lt(o.select('maxTime')))
-                .rename('density').updateMask(i.select(bandName).mask());
-
-            var valueToSum = i.addBands(testBand);
-
-            return valueToSum;
-
-        }).select('density').sum();
-
-        return o.addBands(densityBand.updateMask(o.select(bandName).mask()))
-            .addBands(ee.Image.random(seedNum).add(1).rename('random').updateMask(o.select(bandName).mask()))
-            .addBands(densityBand.multiply(ee.Image.random(seedNum).add(1)).rename('weight').updateMask(o.select('NDVI').mask()));
-    });
-
+    // Convert just the time steps to a single 1D array image
+    var maskArray = iCWithMinMax.select('unmaskedBandArray').toArray();
+    var globalTimeArray = iCWithMinMax.select(timeBandName).toArray().arrayMask(maskArray);
+    var combinedArray = iCWithMinMax.select([timeBandName, 'unmaskedBandArray']).toArray();
+    var bandMaskArray = combinedArray.arraySlice(1,1,2);
+    var globalTimeArrayTest = combinedArray.arraySlice(1,0,1).arrayMask(bandMaskArray);
+    
+    // Define the unnested density filter function
+    function temporalDensityFilter(img) {
+        // Compare the min and max time values
+        var localMin = img.select('minTime');
+        var localMax = img.select('maxTime');
+        
+        // Compare the global time array against this single image's thresholds
+        var matches = globalTimeArrayTest.gt(localMin).and(globalTimeArrayTest.lt(localMax));
+        
+        // Sum the matches to get a scalar density band
+        var densityBand = matches.arrayReduce(ee.Reducer.sum(),[0]).arrayFlatten([['n'],['density']]).select(['n_density'],['density']);
+        
+        // Retrieve the image's system:version as the individual seed across images
+        var iSystemVersion = ee.Number(img.get('indexSeed'));
+        
+        // Use either randomized densities or raw densities to sort the observations
+        if (randomizeSort) {
+            var weightBand = densityBand.multiply(ee.Image.random(iSystemVersion));
+        } else {
+            var weightBand = densityBand;
+        }
+        
+        // Re-apply your original weight logic to the standard image
+        return img.addBands(densityBand.updateMask(img.select(bandName).mask()))
+            .addBands(ee.Image.random(seedNum).add(1).rename('random').updateMask(img.select(bandName).mask()))
+            .addBands(weightBand.rename('weight').updateMask(img.select(bandName).mask()));
+    }
+    
+    // This collection is now generated using a single-level map
+    var densityColl = iCWithMinMax.map(temporalDensityFilter);
+    
     var keysShuffle = densityColl.select('weight').toArray();
 
     // Shuffle the time series values according to temporal density weight
-    var originalTS = densityColl.select(bandName, 'time').toArray();
+    var originalTS = densityColl.map(function(i){return i.addBands(ee.Image.constant(1).rename('valid'))}).select(bandName, timeBandName, 'valid').toArray();
     var densityCollShuffled = originalTS.arraySort(keysShuffle);
 
     // Format array images that will serve as array masks, allowing for subsampled values to 
@@ -647,9 +680,16 @@ exports.sub_sample = function(iC,
 
     // Bulk sampling
     var bulkSamplingSliced = densityCollShuffled.arraySlice(0, 0, nKeep);
-    var bulkSamplingTimeKeys = bulkSamplingSliced.arraySlice(1, -1);
+    var bulkSamplingTimeKeys = bulkSamplingSliced.arraySlice(1, -2, -1);
     var bulkSampledArrayImage = bulkSamplingSliced.arraySort(bulkSamplingTimeKeys);
-    var subSampledImageBulk = bulkSampledArrayImage.arrayPad([nKeep, 2]).arrayFlatten([nL, [bandName, 'time']], '_').selfMask();
+    var bulkPadded = bulkSampledArrayImage.arrayPad([nKeep, 3]);
+    var bulkFlattened = bulkPadded.arrayFlatten([nL, [bandName, timeBandName, 'valid']], '_');
+    var bulkValidBands = bulkFlattened.select(bulkFlattened.bandNames().filter(ee.Filter.stringContains('item', 'valid')));
+    var bulkTimeBandsMasked = bulkFlattened.select(bulkFlattened.bandNames().filter(ee.Filter.stringContains('item', timeBandName))).updateMask(bulkValidBands);
+    var bulkBandNameBandsMasked = bulkFlattened.select(bulkFlattened.bandNames().filter(ee.Filter.stringContains('item', bandName))).updateMask(bulkValidBands);
+    var subSampledImageBulkUnSorted = ee.Image.cat(bulkTimeBandsMasked,bulkBandNameBandsMasked);
+    var subSampledImageBulkUnSortedNames = subSampledImageBulkUnSorted.bandNames().sort();
+    var subSampledImageBulk = subSampledImageBulkUnSorted.select(subSampledImageBulkUnSortedNames);
 
     // Split shuffle sampling
     // Use the sN (number of splits) input to split the array pseudo randomly
@@ -668,21 +708,29 @@ exports.sub_sample = function(iC,
         axis: 0,
         end: ee.Image.constant(nKeep)
     });
-    var keysTimeSplitShuffled = densityCollSlicedSplitShuffled.arraySlice(1, -1);
+    var keysTimeSplitShuffled = densityCollSlicedSplitShuffled.arraySlice(1, -2, -1);
     var densityCollSortedSplitShuffled = densityCollSlicedSplitShuffled.arraySort(keysTimeSplitShuffled);
-    var densityCollPaddedSplitShuffled = densityCollSortedSplitShuffled.arrayPad([nKeep, 2]);
-    var subSampledImageSplitShuffled = densityCollPaddedSplitShuffled.arrayFlatten([nL, [bandName, 'time']], '_').selfMask();
+    var densityCollPaddedSplitShuffled = densityCollSortedSplitShuffled.arrayPad([nKeep, 3]);
+    var subSampledImageSplitShuffledFlat = densityCollPaddedSplitShuffled.arrayFlatten([nL, [bandName, timeBandName, 'valid']], '_');
+    var splitShuffleValidBands = subSampledImageSplitShuffledFlat.select(subSampledImageSplitShuffledFlat.bandNames().filter(ee.Filter.stringContains('item', 'valid')));
+    var splitShuffTimeBandsMasked = subSampledImageSplitShuffledFlat.select(bulkFlattened.bandNames().filter(ee.Filter.stringContains('item', timeBandName))).updateMask(splitShuffleValidBands);
+    var splitShuffBandNameBandsMasked = subSampledImageSplitShuffledFlat.select(bulkFlattened.bandNames().filter(ee.Filter.stringContains('item', bandName))).updateMask(splitShuffleValidBands);
+    var subSampledImageSplitShuffUnSorted = ee.Image.cat(splitShuffTimeBandsMasked,splitShuffBandNameBandsMasked);
+    var subSampledImageSplitShuffUnSortedNames = subSampledImageSplitShuffUnSorted.bandNames().sort();
+    var subSampledImageSplitShuffled = subSampledImageSplitShuffUnSorted.select(subSampledImageSplitShuffUnSortedNames);
 
-    // Apply the array-mask to confirm the subsampling
+    // Leapfrog sampling
     var densityCollMaskedLF = densityCollShuffled.arrayMask(maskArray.arrayRepeat(1, ee.Image(1)));
-    var timeSortingKeysLF = densityCollMaskedLF.arraySlice({
-        axis: 1,
-        start: ee.Image.constant(-1)
-    });
+    var timeSortingKeysLF = densityCollMaskedLF.arraySlice(1, -2, -1);
     var densityCollMaskedSortedLF = densityCollMaskedLF.arraySort(timeSortingKeysLF);
-
-    // Mask the flattened array-image with itself to remove 0 values
-    var subSampledImageLF = densityCollMaskedSortedLF.arrayPad([nKeep, 2]).arrayFlatten([nL, [bandName, 'time']], '_').selfMask();
+    var lFPadded = densityCollMaskedSortedLF.arrayPad([nKeep, 3]);
+    var lFFlattened = lFPadded.arrayFlatten([nL, [bandName, timeBandName, 'valid']], '_');
+    var lFValidBands = lFFlattened.select(lFFlattened.bandNames().filter(ee.Filter.stringContains('item', 'valid')));
+    var lFTimeBandsMasked = lFFlattened.select(lFFlattened.bandNames().filter(ee.Filter.stringContains('item', timeBandName))).updateMask(lFValidBands);
+    var lFBandNameBandsMasked = lFFlattened.select(lFFlattened.bandNames().filter(ee.Filter.stringContains('item', bandName))).updateMask(lFValidBands);
+    var subSampledImagelFUnSorted = ee.Image.cat(lFTimeBandsMasked,lFBandNameBandsMasked);
+    var subSampledImagelFUnSortedNames = subSampledImagelFUnSorted.bandNames().sort();
+    var subSampledImageLF = subSampledImagelFUnSorted.select(subSampledImagelFUnSortedNames);
 
     // Return the image collection of interest
     if (sType == 'bulk') {
@@ -702,7 +750,6 @@ exports.sub_sample = function(iC,
         var imageToReturn = subSampledImageLF;
     } else {
         throw new Error("Input one of: 'bulk', 'splitshuffle', or 'leapfrog'.");
-        var imageToReturn = null;
     }
 
     return imageToReturn;
