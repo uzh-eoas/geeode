@@ -75,7 +75,6 @@ initialize_ee()
 # (e.g., 'projects/your-project' or 'users/your-username') before running tests.
 # See README for details.
 gee_asset_root = os.getenv("GEEODE_TEST_ASSET_ROOT")
-gee_asset_root = "projects/ee-devinrouth/assets"
 
 if not gee_asset_root:
     raise RuntimeError(
