@@ -36,7 +36,7 @@ This function module was written for Google Earth Engine (GEE) as an implementat
 
 \section*{Keywords}
 
-Google Earth Engine; remote sensing; time series; optimization; differential evolution; environmental modeling; curve fitting; evolutionary optimization;
+Google Earth Engine; differential evolution; remote sensing; time series analysis; curve fitting; evolutionary optimization;
 
 \section*{Introduction}
 
@@ -51,7 +51,7 @@ or evolutionary algorithms, have been used since the 1950s \cite{mitchell1998int
 
 \par
 
-Storn and Price \cite{storn1997differential} developed such an algorithm that they called differential evolution (DE) that is particularly suited for optimizing non‑continuous and non‑differentiable real‑valued functions using real‑valued parameters, and the approach has since been applied in a number of scholarly fields \cite{biesbroek2006comparison,feoktistov2006differential,price2005application,qing2010basics}. Nowadays, there are multiple software packages available to run DE, including a \href{https://cran.r-project.org/web/packages/DEoptim/index.html}{package in R} \cite{mullen2011deoptim}, a \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html}{function in SciPy}, and commercial tools in \href{https://www.mathworks.com/matlabcentral/fileexchange/18593-differential-evolution}{MatLab} and \href{https://reference.wolfram.com/language/tutorial/ConstrainedOptimizationGlobalNumerical.html}{Mathematica}.\par
+Storn and Price \cite{storn1997differential} developed such an algorithm that they called differential evolution (DE) that is particularly suited for optimizing non‑continuous and non‑differentiable real‑valued functions using real‑valued parameters, and the approach has since been applied in a number of scholarly fields \cite{biesbroek2006comparison,feoktistov2006differential,price2005application,qing2010basics}. Nowadays, there are multiple software packages available to run DE, including a \href{https://cran.r-project.org/web/packages/DEoptim/index.html}{package in R} \cite{mullen2011deoptim}, a \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html}{function in SciPy}\cite{2020SciPy-NMeth}, and commercial tools in \href{https://www.mathworks.com/matlabcentral/fileexchange/18593-differential-evolution}{MatLab}\cite{MATLAB} and \href{https://reference.wolfram.com/language/tutorial/ConstrainedOptimizationGlobalNumerical.html}{Mathematica}\cite{Mathematica}.\par
 
 The implementation of DE in GEE aims to assist with modelling time series data using arbitrary mathematical models (e.g., linear, parabolic, logarithmic, etc.) on global‑scale remote‑sensing datasets—especially when single pixels have sparse observations, such as when remotely sensed data is heavily impeded by cloud cover, and the process to fit a model through more standard regression modelling approaches are unsuitable. Moreover, the algorithm is structured to allow the production of intermediate outputs (in the form of populations of optimized models, rather than just a final optimized model), which allows users to take advantage of GEE's queueing system and gives greater options for task‑based parallelization to accomplish computationally rigorous workflows on large amounts of imagery.
 
@@ -79,9 +79,14 @@ Included in the repository is also a PyTest‑based testing framework to confirm
 \begin{itemize}
   \item \textbf{Generates sets of functional coefficients} on \textbf{arbitrary closed‑form algebraic functions} such that each coefficient \textbf{falls within the numeric bounds} provided.
   \item Moreover, when the coefficient sets are being assessed \textbf{as the iterations proceed}, the fitness score of the coefficients \textbf{either improves or stabilizes without exception}.
+  \item And lastly, the iterations' \textbf{RMSE should converge on (or towards)}, in this case, \textbf{the RMSE of the known radomly-generated function} (within an acceptable buffer).
 \end{itemize}
 
-The existing PyTest framework assesses a variety of functional families—currently including multiple replicates of logarithmic, quadratic, harmonic, and linear functions—while also allowing users a structure to expand on the tests \emph{ad hoc} in order to affirm algorithmic fidelity.
+The existing PyTest framework assesses a variety of functional families—currently including multiple replicates of logarithmic, quadratic, harmonic, and linear functions—while also allowing users a structure to expand on the tests \emph{ad hoc} in order to affirm algorithmic fidelity. Regarding the last point on convergence, the tests successfully demonstrate that larger populations (10+) running over a higher number of iterations (25+) bring the RMSE close to the randomly-generated functions' RMSE; all replicates safely fell within a buffer of is x2 the known RMSE (with most replicates coming much closer or even exceeding the known function's RMSE).
+
+The PyTest framework also includes a test of the package's principal temporal subsetting function. This test uses a known synthetic time series to ensure the final outputs follow the correct sampling stategies, do not perturb input data, and can accept any temporal date value (including natural zero values).
+
+Running the PyTest requires either existing local \href{https://developers.google.com/earth-engine/guides/auth}{GEE Credentials} or an authenticated GEE Token set as a shell environment variable (i.e., \texttt{EARTHENGINE\_TOKEN}). Users must then input the asset root directory of their associated Google Earth Engine account as a string when executing the PyTest command. The tests requires a $<$1MB of quota space. All aspects, including cleanup, are detailed in the \texttt{README}.
 
 \section*{(2) Availability}
 \vspace{0.5cm}
