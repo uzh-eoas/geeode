@@ -8,3 +8,5 @@ src/geeode.egg-info/
 site/
 build/
 uv.lock
+venv/
+.coverage
