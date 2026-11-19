@@ -30,7 +30,7 @@ For questions please contact: [Devin Routh](mailto:devin.routh@uzh.ch?subject=GE
 - `docs`: the directory containing documentation files
 - `README.md`: the document you're reading
 - `requirements.txt`: a minimal description of the core GEEODE dependencies
-- `requirements-tests.txt`: the packages required to serve the run PyTests
+- `requirements-tests.txt`: the packages required to run PyTests
 - `requirements-docs.txt`: the packages required to serve the documentation
 - `LICENSE`: GEEODE's license file
 - `pyproject.toml`: GEEODE's Python configuration file
@@ -45,7 +45,7 @@ Using `geeode` from the [Google Earth Engine Javascript Playground](https://deve
 var geeode = require('users/uzheoas/geeode:geeode.js')
 ```
 
-This functionality makes use of Earth Engines [script module](https://developers.google.com/earth-engine/guides/playground#script_modules) system.
+This functionality makes use of Earth Engine's [script module](https://developers.google.com/earth-engine/guides/playground#script_modules) system.
 
 ### Python
 
@@ -54,24 +54,28 @@ To make use of GEEODE's workflow functionality via Python, you can install the m
 ```bash
 git clone https://github.com/uzh-eoas/geeode.git
 cd geeode
-pip install .
+pip install -e .
+
 ```
 
 ## Tests
 
-GEEODE is equipped with a PyTest framework for affirming algorithmic fidelity. The test is designed to run locally using existing GEE credentials or via a token. To run the tests:
+GEEODE is equipped with a PyTest framework for affirming algorithmic fidelity. The tests are designed to run locally using existing GEE credentials or via an access token. To run the tests:
 
 ```bash
 git clone https://github.com/uzh-eoas/geeode.git
 cd geeode
-pip install -r requirements-tests.txt
-cd tests
-GEEODE_TEST_ASSET_ROOT='projects/<USERNAME>/assets' pytest --capture=no
+pip install -e ".[test]"
+EE_PROJECT='<PROJECTNAME>' GEEODE_TEST_ASSET_ROOT='projects/<PROJECTNAME>/assets' pytest --cov --capture=no
 ```
 
-When executing the tests, make sure to update `<USERNAME>` with the username that matches the asset location tied to the authenticated GEE account. For reference, `GEEODE_TEST_ASSET_ROOT='projects/<USERDEFINED>/assets'` ensures the test assets are placed in the proper location for the tests.
+When executing the tests, make sure to update `<PROJECTNAME>` with your project's name for both the `EE_PROJECT` and `GEEODE_TEST_ASSET_ROOT` variables (potentially supplying a username instead of a project name within the `GEEODE_TEST_ASSET_ROOT` variable, if the asset root belongs to a different project or user account). Setting `GEEODE_TEST_ASSET_ROOT='projects/<PROJECTNAME>/assets'` ensures the test assets are placed in the proper location for the tests; `EE_PROJECT` is the name of the Google Earth Engine project account you'll use to run the test (which should match the account you have locally authenticated).
+
+For CI or headless environments where you may need to eschew local credentials and authentication, you can instead supply an `EARTHENGINE_TOKEN` variable (a JSON with the `client_id`, `client_secret`, `refresh_token`, and `project` keys).
 
 - Use the `--capture=no` flag to watch the progress via the test's printed statements
+
+To ensure an efficient runtime duration, by default the testing suite randomly selects a functional family group based on a random seed; you can optionally set `GEEODE_TEST_EXPRESSIONS` (an environmental variable) to `ALL` (i.e., `GEEODE_TEST_EXPRESSIONS='ALL'`) when running the tests to select the complete set of functional family groups. Please note: this will launch many tasks and will take considerable time.
 
 If you encounter local credentials issues, consider re-authenticating via Python with `import ee; ee.Authenticate()` or via the [GEE command line tool](https://developers.google.com/earth-engine/guides/command_line#authenticate) using `earthengine authenticate`.
 
@@ -79,13 +83,15 @@ If you encounter local credentials issues, consider re-authenticating via Python
 
 The PyTest creates Earth Engine assets in a folder titled `geeode-pytest-results` created within the path you supply as `GEEODE_TEST_ASSET_ROOT`. While keeping these assets speeds up subsequent test runs (given the assets are reused rather than recomputed), you may wish to remove them periodically to reclaim quota space or to force a fully clean test run.
 
-To delete all test assets, run the following from a Python session (or script) after authenticating with the account you used for testing (and after updating the `<USERNAME>` information within `asset_root`):
+To delete all test assets, run the following from a Python session (or script) after authenticating with the account you used for testing (and after updating the `<PROJECTNAME>` information within `asset_root`):
 
 ```python
 import ee
-ee.Initialize()
+# Provide the project string 
+ee.Initialize(project='<PROJECTNAME>')
 
 # Set this to the same value you used for GEEODE_TEST_ASSET_ROOT
+# Note: cloud projects must include the `/assets` ending
 asset_root = 'projects/<PROJECTNAME>/assets'
 folder = f'{asset_root}/geeode-pytest-results'
 
