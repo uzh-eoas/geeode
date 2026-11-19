@@ -1,4 +1,4 @@
-%% Journal of Open Research Software Latex template -- Created By Stephen Bonner and John Brennan, Durham Universtiy, UK.
+%% Journal of Open Research Software Latex template -- Created By Stephen Bonner and John Brennan, Durham University, UK.
 
 \documentclass{jors}
 
@@ -46,7 +46,7 @@ or evolutionary algorithms, have been used since the 1950s \cite{mitchell1998int
 \begin{figure}[h]
   \centering
   \includegraphics[width=\linewidth]{main_figure.png}
-  \caption{DE Optimization in a single chart}
+  \caption{Conceptual fitting example based on randomized data (grey dots generated from the dashed curve) and example models/members of the population (colored curves). The example shows possible fitted curves using a logarithmic function with three unknown parameters, where each fitted function is a candidate model as part of a population. Each potential solution/model is tested using residual error metrics (e.g., RMSE) within an evolution process wherein the best solutions are iteratively mixed to find the final best-fitting model (e.g., the green line).}
 \end{figure}
 
 \par
@@ -61,15 +61,15 @@ When searching for optimal parameter values, the algorithm benefits from a highe
 
 More specifically, if users hit memory limits with their population number or their number of iterations, the algorithm allows users to structure their workflow via a divide-and-conquer approach: the users may run any number of populations independently of one another then combine the optimal parameter vectors from every separate population run into a final population that can be further iterated. Dividing the populations in this way allows users to run multiple sub-populations in parallel as Earth Engine tasks, with each using the maximum amount of memory possible for a single task.
 
-This means the maximum population size possible for this function is the maximum number of population candidates that can be run via a single Google Earth Engine task for 1 iteration; i.e., a job where all memory available is used for population size while still making a single iteration. In this case, a population of mutated vectors from a previous iteration is used as the input into a further iteration into a follow-up Google Earth Engine task. It's for this reason that the implementation allows the export of full populations, in the form of GEE array-images, rather than just single model parameter sets. It allows users to follow the ``daisy-chain" procedure with the output of one iteration becoming the input into the following iteration.
+This means the maximum population size possible for this function is the maximum number of population candidates that can be run via a single Google Earth Engine task for 1 iteration; i.e., a job where all memory available is used for population size while still making a single iteration. In this case, a population of mutated vectors from a previous iteration is used as the input into a further iteration into a follow-up Google Earth Engine task. It is for this reason that the implementation allows the export of full populations, in the form of GEE array-images, rather than just single model parameter sets. It allows users to follow the ``daisy-chain" procedure with the output of one iteration becoming the input into the following iteration.
 
-The algorithm is furthermore structured to produce metrics that help the user  decide when their time series model has been optimized to a desired degree of fitness; i.e., when a chosen RMSE value has been achieved. The implementation includes an option to produce an RMSE image, termed a \emph{screeImage}, to monitor the progression of the optimization success with a scree plot similar to what is used in dimensional reduction techniques \cite{cattell1966scree}. This image is comprised of multiple bands, wherein each band is the best RMSE value from the population at that iteration. It allows users to determine when convergence on an optimal value has been achieved and an acceptable final parameter set has been produced.
+The algorithm is furthermore structured to produce metrics that help the user  decide when their time series model has been optimized to a desired degree of fitness; i.e., when a chosen RMSE value has been achieved. The implementation includes an option to produce an RMSE image, termed a \emph{screeImage}, to monitor the progression of the optimization success with a scree plot similar to what is used in dimensional reduction techniques \cite{cattell1966scree}. This image is comprised of multiple bands, wherein each band is the best RMSE value from the population at that iteration. It allows users to determine when convergence on an optimal value has been achieved (i.e., an acceptable final parameter set has been produced).
 
 In addition to the core functionality provided by the \texttt{de\_optim} function, specific functions have been provided (both analytical and practical) to allow users the ability to customize their workflows.
 
 Specifically, given the constraints on memory that affect the parameterization of the optimization process, a temporal subsampling function has been added to give  users the ability to reduce the size of the image collections being used as the basis for their optimization tasks.
 
-The subsampling function specifically allows for a temporal subsetting process, in which every pixel's time-series of observations is sampled according to their temporal density; i.e., time series are reduced to a specific size by removing  the necessary number points at an individual pixel-level according to their  relative frequency across the timespan through a weighted-random sampling  process wherein the weights are then calculated as the density of observations  around a specified time-window/kernel. See the \href{https://uzh-eoas.github.io/geeode/subsampling/}{documentation} for more details.
+The subsampling function specifically allows for a temporal subsetting process, in which every pixel's time-series of observations is sampled according to their temporal density; i.e., time series are reduced to a specific size by removing  the necessary number of points at an individual pixel-level according to their  relative frequency across the timespan through a weighted-random sampling  process wherein the weights are then calculated as the density of observations  around a specified time-window/kernel. See the \href{https://uzh-eoas.github.io/geeode/subsampling/}{documentation} for more details.
 
 
 \section*{Quality control}
@@ -79,14 +79,14 @@ Included in the repository is also a PyTest‑based testing framework to confirm
 \begin{itemize}
   \item \textbf{Generates sets of functional coefficients} on \textbf{arbitrary closed‑form algebraic functions} such that each coefficient \textbf{falls within the numeric bounds} provided.
   \item Moreover, when the coefficient sets are being assessed \textbf{as the iterations proceed}, the fitness score of the coefficients \textbf{either improves or stabilizes without exception}.
-  \item And lastly, the iterations' \textbf{RMSE should converge on (or towards)}, in this case, \textbf{the RMSE of the known radomly-generated function} (within an acceptable buffer).
+  \item And lastly, the iterations' \textbf{RMSE should converge on (or towards)}, in this case, \textbf{the RMSE of the known randomly-generated function} (within an acceptable buffer).
 \end{itemize}
 
-The existing PyTest framework assesses a variety of functional families—currently including multiple replicates of logarithmic, quadratic, harmonic, and linear functions—while also allowing users a structure to expand on the tests \emph{ad hoc} in order to affirm algorithmic fidelity. Regarding the last point on convergence, the tests successfully demonstrate that larger populations (10+) running over a higher number of iterations (25+) bring the RMSE close to the randomly generated functions' RMSE; all replicates safely fell within a buffer of 2\texttimes{} the known RMSE (with most replicates matching or even surpassing the known functions' RMSE values).
+The existing PyTest framework allows for the assessment of a variety of functional families—currently including multiple replicates of logarithmic, quadratic, harmonic, and linear functions—while also allowing users a structure to expand on the tests \emph{ad hoc} in order to affirm algorithmic fidelity. By default, a single functional family is assessed, although users can opt to assess all of them. Regarding convergence, the tests successfully demonstrate that larger populations (10+) running over a higher number of iterations (25+) bring the RMSE close to the randomly generated functions' RMSE; all replicates safely fell within a buffer of 2\texttimes{} the known RMSE (with most replicates matching or even surpassing the known functions' RMSE values).
 
-The PyTest framework also includes a test of the package's principal temporal subsetting function. This test uses a known synthetic time series to ensure the final outputs follow the correct sampling strategies, do not perturb input data, and can accept any temporal date value (including natural zero values).
+The PyTest framework also includes a test of the package's principal temporal subsetting function. This test uses a known synthetic time series to ensure the final outputs follow the correct sampling strategies, do not perturb input data, and can accept any temporal date value (including natural zero values). Other miscellaneous functional behavior (e.g., input validation) is also assessed via a dedicated test script.
 
-Running the PyTest requires either existing local \href{https://developers.google.com/earth-engine/guides/auth}{GEE Credentials} or an authenticated GEE Token set as a shell environment variable (i.e., \texttt{EARTHENGINE\_TOKEN}). Users must then input the asset root directory of their associated Google Earth Engine account as a string when executing the PyTest command. The tests require $<$1MB of quota space. All aspects, including cleanup, are detailed in the \texttt{README}.
+Running the PyTest suite requires either existing local \href{https://developers.google.com/earth-engine/guides/auth}{GEE Credentials} or an authenticated GEE Token set as a shell environment variable (i.e., \texttt{EARTHENGINE\_TOKEN}). Users must then input their project name and asset root directory of their associated Google Earth Engine account as a string when executing the PyTest command. The tests require a negligible amount of quota space ($<$1MB). All aspects, including cleanup, are detailed in the \texttt{README}.
 
 \section*{(2) Availability}
 \vspace{0.5cm}
@@ -107,7 +107,7 @@ Since computing revolves around the use of Google Earth Engine, the vast majorit
 \section*{Dependencies}
 
 For Python:
-Python $\geq$3.11, $<$4.0; earthengine‑api 0.1.382; Pandas $\geq$2.0, $<$3.0
+Python $\geq$3.11, $<$4.0; earthengine‑api 1.7.43; Pandas $\geq$2.0, $<$3.0
 
 \section*{List of contributors}
 
@@ -120,8 +120,8 @@ Noel Gorelick; one of the Google Earth Engine founders and an engineer at Google
 	\item[Persistent identifier:] https://doi.org/10.5281/zenodo.18611213
 	\item[Licence:] BSD 3-Clause License
 	\item[Publisher:] Devin Routh
-	\item[Version published:] v1.0.1
-	\item[Date published:] 2026-02-11
+	\item[Version published:] v1.0.5
+	\item[Date published:] 2026-11-19
 \end{description}
 
 {\bf Code repository}
@@ -141,9 +141,7 @@ English
 
 While the principal use-case for this module was time series of remote sensing imagery data, \textit{any} arbitrary time series can be input into the function, expanding the possibility for reuse by researchers across a wide range of domains given the scale of Google Earth Engine data catalog (in addition to the fact that users can upload their own data) \cite{gorelick2017google}.
 
-At the time of publication, the current mutation functions and the crossover functions are coded in an attempted modularized fashion so additional functions can be developed in the future. The current default mutation option \textit{rand} randomly selects three parameter vectors from the population, computes the difference between two of the vectors, multiplies the difference by a scale factor (a real number between 0 and 2), then adds it to the third randomly chosen vector. The other available mutation function (\textit{best}) performs the same arithmetic except it uses the best parameter vector (according to RMSE) instead of a third randomly chosen vector. The crossover function is a simple binomial whereby each iteration is tested according to whether a random number drawn from a uniform distribution on $[0,1)$ exceeds a user‑supplied crossover value in the range $(0,1)$.
-
-Ongoing and future developments to the code include a helper function to randomly subsample dense input time series according to relative temporal density, allowing greater control of input size so that memory limits can be better bypassed, as well as potential variations of the crossover function. Moreover, sampling methodologies for the temporal subsetting function can be expanded according to any statistical method required.
+At the time of publication, the current mutation functions and the crossover functions are coded in an attempted modularized fashion so additional functions can be developed in the future. The current default mutation option \textit{rand} randomly selects three parameter vectors from the population, computes the difference between two of the vectors, multiplies the difference by a scale factor (a real number between 0 and 2), then adds it to the third randomly chosen vector. The other available mutation function (\textit{best}) performs the same arithmetic except it uses the best parameter vector (according to RMSE) instead of a third randomly chosen vector. The crossover function is a simple binomial whereby each iteration is tested according to whether a random number drawn from a uniform distribution on $[0,1)$ exceeds a user‑supplied crossover value in the range $(0,1)$. Moreover, sampling methodologies for the temporal subsetting function can be expanded according to any statistical method required.
 
 Contributors and researchers can submit then discuss issues via the GitHub repository. Contact information for those responsible for the code are also provided on both the repo and the associated documentation.
 
