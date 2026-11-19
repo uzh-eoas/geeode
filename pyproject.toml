@@ -3,7 +3,7 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 [project]
 name = "geeode"
-version = "1.0.4"
+version = "1.0.5"
 description = "A Google Earth Engine package for Optimization via Differential Evolution"
 readme = "README.md"
 license = {text = "BSD-3-Clause"}
@@ -31,7 +31,8 @@ dependencies = [
 [project.optional-dependencies]
 
 test = [
-    "pytest>=9.0.0"
+    "pytest>=9.0.0",
+    "pytest-cov>=6.0"
 ]
 
 docs = [
@@ -60,3 +61,17 @@ include = [
     "tests/**"
 ]
 
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.coverage.run]
+branch = true
+source = ["geeode"]
+
+[tool.coverage.report]
+show_missing = true
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/conftest.py",
+]
