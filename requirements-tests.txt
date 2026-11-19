@@ -6,6 +6,8 @@ cffi==2.1.1
     # via cryptography
 charset-normalizer==3.5.1
     # via requests
+coverage==7.17.3
+    # via pytest-cov
 cryptography==50.0.1
     # via google-auth
 earthengine-api==1.7.43
@@ -59,7 +61,9 @@ packaging==26.3
 pandas==2.3.3
     # via geeode (pyproject.toml)
 pluggy==1.6.0
-    # via pytest
+    # via
+    #   pytest
+    #   pytest-cov
 proto-plus==1.28.4
     # via google-api-core
 protobuf==7.36.2
@@ -78,6 +82,10 @@ pygments==2.21.0
 pyparsing==3.3.2
     # via httplib2
 pytest==9.1.1
+    # via
+    #   geeode (pyproject.toml)
+    #   pytest-cov
+pytest-cov==7.1.0
     # via geeode (pyproject.toml)
 python-dateutil==2.9.0.post0
     # via pandas

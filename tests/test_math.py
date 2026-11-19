@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # !! Note:
-# This test requires initiatliation and authentication to Google Earth Engine.
+# This test requires initialization and authentication to Google Earth Engine.
 # It makes use of the tasks and asset systems, such that when you run the test
 # many tasks are queued and many assets are generated (within a `pytest` 
 # GEE asset folder). Because the script tests for existing assets before
@@ -16,59 +16,18 @@ import datetime
 import time
 import itertools
 import re
-import random
-import copy
 import math
-import statistics
+import copy
+import random
 
 # Import and initialize Earth Engine (and other packages required for initialization)
 import ee
-import json
 import os
-import google.oauth2.credentials
+from conftest import initialize_ee
+initialize_ee()
 
 # Import the local modules
-from geeode.src.geeode.geeode import *
-
-# Initialize Earth Engine using either an auth token (e.g., for CI/CD pipelines) or using the
-# pre-existing local authentication
-# Raises RuntimeError with clear message if neither method succeeds.
-def initialize_ee():
-    # Method 1: Environment token (for CI / Docker / server deployments)
-    token_str = os.getenv("EARTHENGINE_TOKEN")
-    if token_str:
-        try:
-            stored = json.loads(token_str)
-            credentials = google.oauth2.credentials.Credentials(
-                None,
-                token_uri="https://oauth2.googleapis.com/token",
-                client_id=stored["client_id"],
-                client_secret=stored["client_secret"],
-                refresh_token=stored["refresh_token"],
-                quota_project_id=stored.get("project"),
-            )
-            ee.Initialize(credentials=credentials)
-            return
-        except (json.JSONDecodeError, KeyError) as e:
-            raise RuntimeError(
-                f"EARTHENGINE_TOKEN invalid: {e}. "
-                "Format: JSON with client_id, client_secret, refresh_token, project"
-            )
-
-    # Method 2: Local authentication (earthengine authenticate)
-    try:
-        ee.Initialize()
-        return
-    except Exception as e:
-        raise RuntimeError(
-            f"Earth Engine not initialized. Options:\n"
-            f"  1) Run 'ee.Authenticate(force=True)' locally via Python, or\n"
-            f"  2) Set the EARTHENGINE_TOKEN shell/env var.\n"
-            f"Original error: {e}"
-        )
-
-
-initialize_ee()
+from geeode import de_optim, sub_sample, ts_image_to_coll, apply_model, check_for_tasks, check_for_asset_then_run_task, pause_and_wait
 
 
 # Users must set GEEODE_TEST_ASSET_ROOT to a writable Earth Engine asset path
@@ -83,7 +42,7 @@ if not gee_asset_root:
         "can be created; e.g., 'projects/your-project/assets' or 'users/your-username'.\n"
         "Set it before running the tests:\n"
         "    GEEODE_TEST_ASSET_ROOT='projects/your-project' pytest --capture=no\n"
-        "See the 'Running Tests' section of the README for more information."
+        "See the 'Tests' section of the README for more information."
     )
 
 gee_asset_root = gee_asset_root.rstrip("/")
@@ -103,7 +62,7 @@ except ee.EEException:
             f"Could not create folder '{pytest_folder}'.\n"
             f"Verify that GEEODE_TEST_ASSET_ROOT ('{gee_asset_root}') is a valid, "
             f"writable asset path. For cloud projects this must include the "
-            f"'/assets' segment; e.g.m 'projects/your-project/assets'.\n"
+            f"'/assets' segment; e.g., 'projects/your-project/assets'.\n"
             f"Original error: {create_error}"
         ) from create_error
 except Exception as error:
@@ -135,9 +94,20 @@ expListOfDict = [{"expression":"b('a') * log(b('time') + b('b')) + b('c')",
                   "boundsList":[[1, 9],[1, 9]],
                   "vars":['a','b']}]
 
+# You can select expression families using 'ALL' to run every family (e.g., for CI
+# set the GEEODE_TEST_EXPRESSIONS variable); otherwise one family is chosen at random,
+# seeded with POSIX time. Optionally, seed it manually with GEEODE_TEST_SEED=<printed value> 
+# to allow reproducibility.
+seed = int(os.getenv("GEEODE_TEST_SEED", int(time.time())))
+print(f"GEEODE runtime seed: {seed}")
+random.seed(seed)
+if os.getenv("GEEODE_TEST_EXPRESSIONS", "").upper() == "ALL":
+    families = expListOfDict
+else:
+    families = [random.choice(expListOfDict)]
+expListOfDictCopy = copy.deepcopy(families)
 
 paramList = []
-expListOfDictCopy = copy.deepcopy(expListOfDict)
 
 # Input the number of replicates (i.e., number of randomized datasets to generate/assess)
 # then bundle all replicate data into dictionaries for later use
@@ -194,6 +164,56 @@ all_combos = list(combinations)
 asset_list = []
 replfam_list = []
 
+# Create a helper function to generate a synthetic time series
+pOI = ee.Geometry.Point([8.548333, 47.374722])
+aOI = pOI.buffer(1000).bounds()
+projection = ee.Projection("EPSG:4326").atScale(100)
+
+def make_synthetic_timeseries(rand_expr):
+    def make_image(n):
+        return (
+            ee.Image.constant(n)
+            .cast({"constant": ee.PixelType.int8()}, ["constant"])
+            .set('num', n)
+            .rename('num')
+            .addBands(ee.Image.constant(n).rename('time'))
+            .clip(aOI)
+            .reproject(projection)
+        )
+
+    numImColl = (
+        ee.ImageCollection(ee.List.sequence(1, 30).map(make_image))
+        .cast({'num': 'float', 'time': 'float'}, ['num', 'time'])
+    )
+
+    def apply_expression(i):
+        return (
+            ee.Image(i.select('num')
+                   .expression(rand_expr)
+                     .rename('num')
+                     .copyProperties(i))
+            .addBands(i.select('time'))
+        )
+
+    def compute_error(i):
+        seed = ee.Number(ee.Image(i).get('num'))
+        randomField = ee.Image.random(seed, 'normal')
+        maxError = i.select('num').multiply(ee.Image.constant(MAX_ERROR_DECIMAL))
+        finalError = maxError.multiply(randomField)
+        imageToCast = (
+            i.select('num')
+             .add(finalError)
+             .rename('numWithError')
+             .addBands(i.select('time'))
+        )
+        return ee.Image(imageToCast).float()
+
+    return (
+        numImColl.map(apply_expression)
+        .map(compute_error)
+        .map(lambda i: i.set('system:footprint', aOI))
+    )
+
 # Loop through all combinations
 for combo in all_combos:
     
@@ -211,60 +231,7 @@ for combo in all_combos:
     desc = replFam+'_i'+str(iNum).zfill(3)
     aID = pytest_folder+'/'+desc
     asset_list.append(aID)
-    
-    # Define an arbitrary area of interest and create the imagery there
-    pOI = ee.Geometry.Point([8.548333, 47.374722])
-    aOI = pOI.buffer(1000).bounds()
-    projection = ee.Projection("EPSG:4326").atScale(100)
-
-    def make_image(n):
-        return (
-            ee.Image.constant(n)
-         .cast({"constant": ee.PixelType.int8()}, ["constant"])
-       .set('num', n)
-          .rename('num')
-            .addBands(ee.Image.constant(n).rename('time'))
-        .clip(aOI)
-            .reproject(projection)
-        )
-
-    numImColl = (
-        ee.ImageCollection(ee.List.sequence(1, 30).map(make_image))
-        .cast({'num': 'float', 'time': 'float'}, ['num', 'time'])
-    )
-
-    # Apply the algebraic expression to the image collection
-    def apply_expression(i):
-        return (
-            ee.Image(i.select('num')
-                   .expression(randomizedFun)
-                     .rename('num')
-                     .copyProperties(i))
-            .addBands(i.select('time'))
-        )
-
-    expressionApplied = numImColl.map(apply_expression)
-
-    # Apply some random error to the series so it's ready to model // as an example dataset
-    def computeError(i):
-        seed = ee.Number(ee.Image(i).get('num'))
-        randomField = ee.Image.random(seed, 'normal')
-        maxError = i.select('num').multiply(ee.Image.constant(MAX_ERROR_DECIMAL))
-        finalError = maxError.multiply(randomField)
-        imageToCast = (
-            i.select('num')
-             .add(finalError)
-             .rename('numWithError')
-             .addBands(i.select('time'))
-        )
-        return ee.Image(imageToCast).float()
-
-    timeSeries = (
-        expressionApplied
-        .map(computeError)
-        .map(lambda i: i.set('system:footprint', aOI))
-    )
-
+    timeSeries = make_synthetic_timeseries(randomizedFun)
     bandName = "numWithError";
 
     # Run de optim
@@ -343,7 +310,7 @@ for l in list_of_prop_dicts_copy:
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Apply the test assertions
+# Apply the test assertions to confirm the underlying algorithm mathematics are correct.
 
 # Error/Loss Function Optimization
 # Assert that the optimization of a loss/error function has occurred uniformly throughout the iterations.
@@ -368,3 +335,67 @@ def test_rmse_floor():
     ]
     assert not failures, "\n".join(failures)
 
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Conduct a scree output test (i.e., a single call that asserts scree-image format)
+
+def test_scree_image_format():
+    linear_expr = "b('a') * b('time') + b('b')"
+    ts = make_synthetic_timeseries("(3 * b('num')) + 2")
+    deOptimScree = de_optim(10, 25, linear_expr,
+                            ["a", "b"], [[1, 9], [1, 9]],
+                            ts, "numWithError",
+                            optParams={"computeScree": True})
+    bN = deOptimScree.bandNames().getInfo()
+
+    # Format assertions: scree bands follow the RMSE_### naming scheme
+    scree_bands = [b for b in bN if re.fullmatch(r"RMSE_\d{3}", b)]
+    assert len(scree_bands) == 25          # one per iteration
+    assert all("REMOVE" not in b for b in bN)
+
+    # Values: non-increasing across iterations (RMSE floor should improve/hold)
+    vals = deOptimScree.select(scree_bands).reduceRegion(
+        ee.Reducer.first(), pOI, 100, "EPSG:4326").getInfo()
+    seq = [vals[b] for b in scree_bands]
+    assert all(y <= x for x, y in zip(seq, seq[1:]))
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Best-strategy mutation test (single small run)
+
+def test_de_optim_best_strategy():
+    ts = make_synthetic_timeseries("(3 * b('num')) + 2")
+    out = de_optim(5, 5, "b('a') * b('time') + b('b')",
+                   ["a", "b"], [[1, 9], [1, 9]],
+                   ts, "numWithError",
+                   optParams={"mutationStrategy": "best"})
+    vals = out.reduceRegion(ee.Reducer.first(), pOI, 100, "EPSG:4326").getInfo()
+    # Coefficients recovered within bounds and roughly near truth (3, 2)
+    assert 1 <= vals['a'] <= 9 and 1 <= vals['b'] <= 9
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Daisy-chain outputs: population image (and population+scree combo)
+
+def test_de_optim_daisy_chain_population():
+    ts = make_synthetic_timeseries("(3 * b('num')) + 2")
+    pop_img = de_optim(5, 5, "b('a') * b('time') + b('b')",
+                       ["a", "b"], [[1, 9], [1, 9]],
+                       ts, "numWithError",
+                       optParams={"daisyChain": True})
+    # Population image is a per-pixel 2D array image (axis 0 = pop members,
+    # axis 1 = optimized variables); reduce lengths at the test point
+    l0 = pop_img.arrayLength(0).reduceRegion(
+        ee.Reducer.first(), pOI, 100, "EPSG:4326").getInfo()
+    l1 = pop_img.arrayLength(1).reduceRegion(
+        ee.Reducer.first(), pOI, 100, "EPSG:4326").getInfo()
+    assert list(l0.values())[0] == 5      # pop_size rows
+    assert list(l1.values())[0] == 2      # one column per optimized variable
+
+def test_de_optim_daisy_chain_scree():
+    ts = make_synthetic_timeseries("(3 * b('num')) + 2")
+    out = de_optim(5, 5, "b('a') * b('time') + b('b')",
+                   ["a", "b"], [[1, 9], [1, 9]],
+                   ts, "numWithError",
+                   optParams={"daisyChain": True, "computeScree": True})
+    bN = out.bandNames().getInfo()
+    scree_bands = [b for b in bN if re.fullmatch(r"RMSE_\d{3}", b)]
+    assert len(scree_bands) == 5    # one scree band per iteration
